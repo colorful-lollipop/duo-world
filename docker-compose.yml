@@ -1,0 +1,10 @@
+services:
+  duo:
+    build: .
+    ports:
+      - "8790:8790"
+    environment:
+      - PORT=8790
+      # 公网部署时填你的域名，分享链接和二维码会用它
+      # - PUBLIC_URL=https://duo.example.com
+    restart: unless-stopped

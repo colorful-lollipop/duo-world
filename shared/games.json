@@ -1,0 +1,373 @@
+[
+  {
+    "id": "talk-cards",
+    "name": "深夜聊天卡",
+    "emoji": "🌙",
+    "tagline": "抽一张卡，聊一个平时不会问的问题",
+    "intro": "四套卡组：轻松、走心、未来、小挑战。轮流抽卡，被问到的人认真回答；喜欢的卡可以收藏，慢慢攒成只属于你们的小本子。这里没有输赢，只有更懂彼此。",
+    "rules": [
+      "选好卡组，轮到谁，谁来抽卡",
+      "两人同时翻开；问题问对方，小挑战由抽卡人完成",
+      "聊完点「下一张」，换对方抽"
+    ],
+    "tags": [
+      "默契"
+    ],
+    "duration": "不限",
+    "net": "延迟友好",
+    "gradient": [
+      "#9C8BFF",
+      "#5B4BD6"
+    ],
+    "settings": [
+      {
+        "type": "select",
+        "key": "deck",
+        "label": "卡组",
+        "default": "走心",
+        "options": [
+          {
+            "value": "轻松",
+            "label": "🍬 轻松一点"
+          },
+          {
+            "value": "走心",
+            "label": "🌙 走近一点"
+          },
+          {
+            "value": "未来",
+            "label": "🔮 想远一点"
+          },
+          {
+            "value": "小挑战",
+            "label": "🎲 小挑战"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "draw-guess",
+    "name": "你画我猜",
+    "emoji": "🎨",
+    "tagline": "你画 TA 猜，画得越抽象笑得越大声",
+    "intro": "两人轮流当画手。猜中了，两个人一起得分。词库里有恋爱专属词，也有些日常到不能再日常的东西——看看你们能把它画成什么样。",
+    "rules": [
+      "轮流当画手，从三个词里挑一个",
+      "限时内画出来，TA 在下面输入答案",
+      "猜中一起得分，越快分越高"
+    ],
+    "tags": [
+      "合作"
+    ],
+    "duration": "10 分钟",
+    "net": "延迟友好",
+    "gradient": [
+      "#FFCB6B",
+      "#FF9A3C"
+    ],
+    "settings": [
+      {
+        "type": "select",
+        "key": "rounds",
+        "label": "轮数",
+        "default": 6,
+        "options": [
+          {
+            "value": 4,
+            "label": "4 轮"
+          },
+          {
+            "value": 6,
+            "label": "6 轮"
+          },
+          {
+            "value": 8,
+            "label": "8 轮"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "seconds",
+        "label": "每轮时长",
+        "default": 80,
+        "options": [
+          {
+            "value": 60,
+            "label": "60 秒"
+          },
+          {
+            "value": 80,
+            "label": "80 秒"
+          },
+          {
+            "value": 100,
+            "label": "100 秒"
+          }
+        ]
+      },
+      {
+        "type": "multi",
+        "key": "libraries",
+        "label": "词库",
+        "default": [
+          "日常",
+          "恋爱"
+        ],
+        "min": 1,
+        "options": [
+          {
+            "value": "日常",
+            "label": "日常"
+          },
+          {
+            "value": "恋爱",
+            "label": "恋爱"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mind-meld",
+    "name": "心有灵犀",
+    "emoji": "🔮",
+    "tagline": "同时说一个词，直到你们说出同一个",
+    "intro": "从两个不同的词出发，一起寻找它们的联系。海和猫，也许会在鱼这里相遇。词越接越远，看看你们的脑电波能走多近。",
+    "rules": [
+      "各自写一个词，同时揭晓",
+      "想一个和上轮两个词都有关的词",
+      "写下同一个词就算心有灵犀"
+    ],
+    "tags": [
+      "默契"
+    ],
+    "duration": "5 分钟",
+    "net": "延迟友好",
+    "gradient": [
+      "#D2B0FF",
+      "#9B6BFF"
+    ],
+    "settings": [
+      {
+        "type": "select",
+        "key": "rounds",
+        "label": "轮数",
+        "default": 10,
+        "options": [
+          {
+            "value": 6,
+            "label": "6 轮"
+          },
+          {
+            "value": 10,
+            "label": "10 轮"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "know-me",
+    "name": "你懂我吗",
+    "emoji": "💗",
+    "tagline": "TA 最爱吃什么？最怕什么？答错要解释哦",
+    "intro": "轮流当主角：主角如实回答，另一半来猜。猜错了正好聊一聊——原来你是这么想的。十道题之后，看看你们的默契指数。",
+    "rules": [
+      "轮流当主角，回答关于自己的问题",
+      "另一半同时猜，两边都交了才揭晓",
+      "由主角给分，最后看看默契指数"
+    ],
+    "tags": [
+      "默契"
+    ],
+    "duration": "8 分钟",
+    "net": "延迟友好",
+    "gradient": [
+      "#FFA6C6",
+      "#FF6B9A"
+    ],
+    "settings": [
+      {
+        "type": "select",
+        "key": "count",
+        "label": "题数",
+        "default": 10,
+        "options": [
+          {
+            "value": 8,
+            "label": "8 题"
+          },
+          {
+            "value": 10,
+            "label": "10 题"
+          },
+          {
+            "value": 12,
+            "label": "12 题"
+          }
+        ]
+      },
+      {
+        "type": "multi",
+        "key": "categories",
+        "label": "题目分类",
+        "default": [
+          "吃喝",
+          "习惯",
+          "回忆",
+          "恋爱",
+          "假如",
+          "未来"
+        ],
+        "min": 1,
+        "options": [
+          {
+            "value": "吃喝",
+            "label": "吃喝"
+          },
+          {
+            "value": "习惯",
+            "label": "习惯"
+          },
+          {
+            "value": "回忆",
+            "label": "回忆"
+          },
+          {
+            "value": "恋爱",
+            "label": "恋爱"
+          },
+          {
+            "value": "假如",
+            "label": "假如"
+          },
+          {
+            "value": "未来",
+            "label": "未来"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gomoku",
+    "name": "爱心五子棋",
+    "emoji": "⚫",
+    "tagline": "五子连珠，输的人请奶茶",
+    "intro": "经典五子棋，配上一句小赌约。想悔棋得先问过 TA 同不同意，让不让就看感情啦。",
+    "rules": [
+      "轮流在棋盘上落子",
+      "横、竖、斜五子连成线就赢",
+      "悔棋和求和都需要 TA 同意"
+    ],
+    "tags": [
+      "对弈"
+    ],
+    "duration": "10 分钟",
+    "net": "延迟友好",
+    "gradient": [
+      "#97E8B6",
+      "#38B872"
+    ],
+    "settings": [
+      {
+        "type": "select",
+        "key": "first",
+        "label": "谁先手",
+        "default": "房主",
+        "options": [
+          {
+            "value": "房主",
+            "label": "房主"
+          },
+          {
+            "value": "TA",
+            "label": "TA"
+          },
+          {
+            "value": "随机",
+            "label": "随机"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "wager",
+        "label": "小赌约",
+        "default": "请对方喝一杯奶茶",
+        "maxLength": 30,
+        "placeholder": "请喝奶茶 / 洗一次碗 / 做一顿饭"
+      }
+    ]
+  },
+  {
+    "id": "checkers",
+    "name": "爱心跳棋",
+    "emoji": "🔴",
+    "tagline": "斜走、跳吃、升王，先让对方无子可动",
+    "intro": "8×8 西洋跳棋：棋子斜着走一格，跳过对方棋子就能吃掉它；吃子后如果还能继续跳，必须接着跳。走到对方底线会升成王，王可以四个方向走。先让对方没有棋子或没有合法走法的人赢。",
+    "rules": [
+      "轮流斜走一格，或跳过对方棋子吃子",
+      "吃子后如果能继续跳，必须接着跳",
+      "走到对方底线升王，王可以四个方向走",
+      "让对方没有棋子或没有合法走法就赢"
+    ],
+    "tags": [
+      "对弈"
+    ],
+    "duration": "10 分钟",
+    "net": "延迟友好",
+    "gradient": [
+      "#9BE7D8",
+      "#2EB99A"
+    ],
+    "settings": [
+      {
+        "type": "select",
+        "key": "first",
+        "label": "谁先手",
+        "default": "房主",
+        "options": [
+          {
+            "value": "房主",
+            "label": "房主"
+          },
+          {
+            "value": "TA",
+            "label": "TA"
+          },
+          {
+            "value": "随机",
+            "label": "随机"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "mandatory",
+        "label": "吃子规则",
+        "default": "必须吃子",
+        "options": [
+          {
+            "value": "必须吃子",
+            "label": "必须吃子"
+          },
+          {
+            "value": "自由吃子",
+            "label": "自由吃子"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "wager",
+        "label": "小赌约",
+        "default": "请对方喝一杯奶茶",
+        "maxLength": 30,
+        "placeholder": "请喝奶茶 / 洗一次碗 / 做一顿饭"
+      }
+    ]
+  }
+]

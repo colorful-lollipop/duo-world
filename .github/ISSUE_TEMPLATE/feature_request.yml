@@ -1,0 +1,27 @@
+name: Feature request
+description: 建议一个新玩法或功能
+title: "[feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你想加什么
+      description: 描述这个玩法或功能，以及它为什么适合两个人一起玩。
+    validations:
+      required: true
+  - type: textarea
+    id: rules
+    attributes:
+      label: 玩法规则（可选）
+      description: 如果是新游戏，简单写一下规则和胜负条件。
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 范围
+      options:
+        - 新游戏
+        - 现有游戏的增强
+        - 大厅 / 房间功能
+        - 部署 / 运维
+        - 其他

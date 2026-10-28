@@ -1,0 +1,47 @@
+name: Bug report
+description: 报告一个使用中遇到的问题
+title: "[bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 描述你遇到的问题，最好附上截图。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 如何复现
+      description: 一步一步怎么操作会出现这个问题。
+      placeholder: |
+        1. 创建房间
+        2. 开始「你画我猜」
+        3. 画了一笔之后……
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: 设备
+      options:
+        - 手机（浏览器 Safari/Chrome）
+        - 电脑（浏览器 Chrome/Edge）
+        - 其他
+    validations:
+      required: true
+  - type: dropdown
+    id: deploy
+    attributes:
+      label: 部署方式
+      options:
+        - 本机 npm run serve / dev
+        - Docker
+        - 云服务器 + Nginx
+        - 其他
+  - type: textarea
+    id: logs
+    attributes:
+      label: 控制台日志
+      description: 浏览器 DevTools / 服务端终端里的报错信息。

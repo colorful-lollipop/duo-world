@@ -1,0 +1,59 @@
+{
+  "name": "duo-world",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "二人世界 · 情侣双人在线小游戏合集",
+  "license": "MIT",
+  "author": "duo-world contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/colorful-lollipop/duo-world.git"
+  },
+  "homepage": "https://github.com/colorful-lollipop/duo-world#readme",
+  "bugs": {
+    "url": "https://github.com/colorful-lollipop/duo-world/issues"
+  },
+  "keywords": [
+    "couple",
+    "games",
+    "multiplayer",
+    "react",
+    "websocket",
+    "pwa"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c yellow,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "node --watch server/index.mjs",
+    "dev:client": "vite",
+    "build": "tsc --noEmit && node scripts/check-games.mjs && vite build",
+    "start": "node server/index.mjs",
+    "serve": "npm run build && npm start",
+    "smoke": "node scripts/smoke.mjs",
+    "check:games": "node scripts/check-games.mjs",
+    "new:game": "node scripts/new-game.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/ws": "^8.5.13",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "playwright-core": "^1.64.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}
