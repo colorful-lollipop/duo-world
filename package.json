@@ -1,6 +1,6 @@
 {
   "name": "duo-world",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": false,
   "type": "module",
   "description": "二人世界 · 情侣双人在线小游戏合集",
@@ -34,7 +34,10 @@
     "serve": "npm run build && npm start",
     "smoke": "node scripts/smoke.mjs",
     "check:games": "node scripts/check-games.mjs",
-    "new:game": "node scripts/new-game.mjs"
+    "new:game": "node scripts/new-game.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "assets": "node scripts/gen-assets.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -56,6 +59,7 @@
     "concurrently": "^9.1.2",
     "playwright-core": "^1.64.1",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "vitest": "^5.0.5"
   }
 }

@@ -37,6 +37,8 @@ export interface JournalEntry {
   detail: string;
   data: Record<string, unknown> | null;
   at: number;
+  /** 只有跨小屋汇总的历史会带这个字段 */
+  code?: string;
 }
 
 export interface GameState {

@@ -5,3 +5,6 @@ _shots
 *.local
 .env
 .DS_Store
+
+data
+_shots

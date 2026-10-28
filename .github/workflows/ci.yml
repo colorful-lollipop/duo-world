@@ -29,5 +29,8 @@ jobs:
       - name: Type check + game structure check + build
         run: npm run build
 
+      - name: Unit tests (vitest)
+        run: npm run test
+
       - name: Smoke test (all games end-to-end)
         run: npm run smoke

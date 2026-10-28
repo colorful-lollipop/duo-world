@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GAMES, type Profile } from "../types";
 import { Scene, Logo } from "../components/Scene";
 import { Couple } from "../components/Critter";
@@ -6,19 +6,30 @@ import { ProfileForm } from "../components/ProfileForm";
 import { Modal } from "../components/Modal";
 import { Icon } from "../components/Icon";
 import { createRoom, ApiError } from "../lib/api";
-import { getLastRoom, loadProfile, saveSession } from "../lib/storage";
+import { getLastRoom, knownRoomsWithToken, loadProfile, saveSession } from "../lib/storage";
 import { navigate } from "../lib/router";
 import { sfx } from "../lib/sound";
+import { JournalView } from "../components/JournalView";
 
-type HomeModal = "create" | "join" | "games" | "how" | null;
+type HomeModal = "create" | "join" | "games" | "how" | "memory" | null;
 
 export function HomePage() {
   const saved = useMemo(() => loadProfile(), []);
   const last = useMemo(() => getLastRoom(), []);
+  const known = useMemo(() => knownRoomsWithToken(), []);
   const [modal, setModal] = useState<HomeModal>(null);
   const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // PWA 快捷方式（manifest shortcuts）：/?action=create 直接开创建弹窗
+  useEffect(() => {
+    const action = new URLSearchParams(location.search).get("action");
+    if (action === "create" || action === "join") {
+      setModal(action);
+      history.replaceState(null, "", location.pathname);
+    }
+  }, []);
 
   async function create(profile: Profile) {
     if (busy) return;
@@ -97,6 +108,12 @@ export function HomePage() {
             {last && (
               <button className="last-room-link" onClick={() => navigate(`/r/${last.code}`)}>
                 <Icon name="clock" size={16} /> 回到上次的小屋 <b>{last.code}</b> →
+              </button>
+            )}
+
+            {known.length > 0 && (
+              <button className="last-room-link memory-link" onClick={() => setModal("memory")}>
+                <Icon name="book" size={16} /> 我们的回忆 <b>{known.length}</b> 间小屋 →
               </button>
             )}
           </div>
@@ -273,6 +290,15 @@ export function HomePage() {
           <button className="primary wide" onClick={() => setModal("create")}>
             创建小屋
           </button>
+        </Modal>
+      )}
+
+      {modal === "memory" && (
+        <Modal title="我们的回忆" onClose={() => setModal(null)} wide>
+          <p className="small-print muted center" style={{ marginBottom: 12 }}>
+            这些记录存在你们自己的服务器上，就算小屋过期了也还在。
+          </p>
+          <JournalView codes={known.map((k) => k.code)} />
         </Modal>
       )}
     </div>

@@ -17,6 +17,7 @@
 | --- | --- | --- |
 | 🌙 深夜聊天卡 | 四套卡组轮流抽卡，认真回答对方的问题，喜欢的卡可以收藏 | 想好好聊天的时候 |
 | 🎨 你画我猜 | 轮流当画手，实时同步画布，猜中两人一起得分 | 想笑出声的时候 |
+| 🐒 哥俩好 | 两只猴子被一根绳子拴着，轮流蓄力跳断桥，掉下去要互相拉上来 | 想一起手忙脚乱的时候 |
 | 🔮 心有灵犀 | 从两个词出发，同时写联想词，写出同一个就算成功 | 测试默契 |
 | 💗 你懂我吗 | 轮流当主角回答关于自己的问题，另一半来猜，主角判分 | 想更了解彼此 |
 | ⚫ 爱心五子棋 | 15×15 经典五子棋，带小赌约、悔棋请求、求和与认输 | 想分个胜负 |
@@ -25,6 +26,10 @@
 所有玩法都是 **两人合作 / 对弈**，没有陌生人、没有排行榜、没有广告。
 
 ![跳棋](docs/screenshot-checkers.png)
+
+![哥俩好](docs/screenshot-brothers.png)
+
+![纪念册](docs/screenshot-journal.png)
 
 ![档案与心情](docs/screenshot-profile.png)
 
@@ -41,6 +46,9 @@
   断线重连可以恢复整局进度。
 - **两人一屋**：每个房间只有两个座位，靠 token 识别身份。
 - **13 种小动物 + 5 种心情**：可以给自己捏一个当天的小样子，心情会同步给 TA。
+- **纪念册落盘**：每局结束都会写进 SQLite，小屋过期了「我们的回忆」也还在；
+  首页和房间大厅都能按 token 翻历史战绩与胜率。
+- **PWA**：桌面/手机浏览器都可以「添加到主屏幕」，离线也能打开小屋封面。
 - **生产安全**：WS 首帧认证（URL 不出现 token）、CSP/HSTS、HTTP 限流、结构化日志与 `/metrics`。
 
 ## 快速开始
@@ -69,7 +77,8 @@ npm run dev          # 前端 http://localhost:5173，后端 8790
 如果宿主用 `localhost` 打开，分享弹窗会自动把链接换成局域网地址，手机扫码即可。
 Windows 首次启动可能需要允许 Node.js 通过防火墙。
 
-> 房间闲置 12 小时后自动清理；服务重启会清空所有房间（数据在内存里）。
+> 房间闲置 12 小时后自动清理，但纪念册和战绩会一直留在服务器上（SQLite）。
+> 服务重启不会丢数据；默认数据目录是 `<repo>/data`（用 `DATA_DIR` 环境变量可换）。
 
 ## 部署
 
@@ -118,6 +127,8 @@ shared/games.json           # 游戏目录 + 设置表单（前后端共用）
 server/
   index.mjs                 # Express + WebSocket + 静态文件
   rooms.mjs                 # 房间、座位、广播、结算、内存清理
+  store.mjs                 # 持久化（node:sqlite，回退 JSON 文件）
+  observability.mjs         # 结构化日志 + Prometheus 指标
   games/
     index.mjs               # 自动发现 server/games/*.mjs 并校验
     _kit.mjs                # 通用工具（随机、归一化、胜场统计）
@@ -132,11 +143,18 @@ src/
     types.ts                # StageProps / ResultExtraProps 约定
     _template.tsx           # 界面模板
     <id>.tsx                # 每个游戏的界面，导出 Stage，可选 ResultExtra
-  components/ lib/          # 小动物、场景、弹窗、WebSocket、音效
+  components/ lib/          # 小动物、场景、弹窗、WebSocket、音效、纪念册
+public/
+  manifest.webmanifest      # PWA 清单
+  sw.js                     # 离线壳（只缓存首页与静态资源，API 永远走网络）
+  icons/ og.png             # 图标与分享卡
+tests/
+  unit/                     # Vitest：游戏规则、持久化、房间
 scripts/
   new-game.mjs              # 新游戏脚手架
   check-games.mjs           # 结构校验（build 前自动执行）
   smoke.mjs                 # 双客户端端到端测试
+  visual.mjs                # 界面截图（可选）
 ```
 
 ## 加一个新游戏
@@ -226,7 +244,8 @@ npm run dev         # 开发模式
 npm run build       # 类型检查 + 游戏结构校验 + 生产构建
 npm run start       # 运行生产构建
 npm run serve       # build + start
-npm run smoke       # 双客户端跑完所有游戏（含断线重连）
+npm run test        # Vitest 单元测试（规则 / 持久化 / 房间）
+npm run smoke       # 双客户端跑完所有游戏（含断线重连、历史战绩）
 npm run check:games # 只做游戏三件套校验
 npm run new:game    # 新游戏脚手架
 ```
@@ -242,18 +261,23 @@ node scripts/visual.mjs        # Chrome 不在默认路径时设置 CHROME_PATH
 
 - **服务端权威**：所有状态在服务端推进，客户端只发动作；服务端广播完整快照。
   两端不会因为延迟出现规则分歧，断线重连也能恢复。
+- **动作幂等**：每个动作带 `cid`，服务端用最近 400 个 cid 去重；客户端断网时先排队，
+  重连后按顺序补发，服务端回 `ack` 出队，所以网络抖动不会导致重复落子。
 - **房间两座**：token 存在各自浏览器 localStorage；同一 token 在别处打开会接管旧连接。
 - **笔迹流**：画板坐标 1000×1000，每 45ms 批量发送；服务端保存并在新连接时重放。
   普通状态广播会剔除笔迹，避免每条消息都带整张画。
-- **不存数据库**：房间在内存里，12 小时无人在线后回收。
-- **纪念册**：每局结束服务端调用 `summary()`，写入 `room.journal`，大厅与结算页展示。
+- **落盘不阻塞**：房间状态 2 秒防抖写入 SQLite（WAL），进程退出前统一 flush；
+  纪念册与战绩在结算瞬间就写库，所以小屋过期也能查。
+- **纪念册**：每局结束服务端调用 `summary()`，写入 `room.journal` 与 `journal` 表；
+  `GET /api/rooms/:code/history` 用本人 token 读取，别人的 token 一律 403。
 
 ## 已知限制 / Roadmap
 
-- 房间与纪念册在内存里，重启即消失；可接 SQLite 做长期保存。
+- 单实例：房间仍在进程内存里（SQLite 只是落盘恢复），横向扩展需要共享状态。
 - 还没有文字聊天和语音，只有表情反应。
 - 你画我猜暂未保存画作原图，可扩展为画廊 / 笔迹回放。
-- 可以继续加：合照拼图、红绳平台、节奏同步、飞行棋、谁是卧底、旅行地图……
+- 历史战绩目前按设备 token 认人，换设备/清缓存后需要重新拉取。
+- 可以继续加：合照拼图、节奏同步、飞行棋、谁是卧底、旅行地图……
 - 音效由 WebAudio 实时合成，无额外音频资源。
 
 更完整的商业化与长期维护路线见 [docs/ROADMAP.md](docs/ROADMAP.md)。

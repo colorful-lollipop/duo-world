@@ -24,6 +24,8 @@ import { GameSettings } from "../components/GameSettings";
 import { ShareModal } from "../components/ShareModal";
 import { Modal, Toast } from "../components/Modal";
 import { Icon } from "../components/Icon";
+import { JournalView } from "../components/JournalView";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { GameStageHost } from "../games/GameStageHost";
 
 export function RoomPage({ code }: { code: string }) {
@@ -55,6 +57,8 @@ function JoinScreen({ code, onJoined }: { code: string; onJoined: (token: string
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<Profile | null>(saved);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const haveToken = !!getToken(code);
 
   useEffect(() => {
     let live = true;
@@ -126,6 +130,16 @@ function JoinScreen({ code, onJoined }: { code: string; onJoined: (token: string
                 回首页重新开一间
               </button>
             </div>
+            {haveToken && (
+              <button className="text-button" onClick={() => setMemoryOpen(true)}>
+                <Icon name="book" size={16} /> 但这间小屋的回忆还在，看看
+              </button>
+            )}
+            {memoryOpen && (
+              <Modal title={`小屋 ${code} · 我们的回忆`} onClose={() => setMemoryOpen(false)} wide>
+                <JournalView codes={[code]} />
+              </Modal>
+            )}
           </div>
         ) : info.full ? (
           <div className="join-card">
@@ -360,21 +374,45 @@ function LiveRoom({ code, token, onInvalid }: { code: string; token: string; onI
           {otherProfile && !state.seats[otherSeat].connected && (
             <div className="partner-away">TA 暂时掉线了，等你回来继续</div>
           )}
-          <GameStageHost
-            key={`${state.game.run}:${welcomeSeq}`}
-            room={state}
-            seat={seat}
-            game={state.game}
-            act={act}
-            send={send}
-            now={now}
-            subscribe={subscribe}
-            onRestart={() => {
-              sfx.tap();
-              send({ type: "start" });
-            }}
-            onExit={() => send({ type: "exit" })}
-          />
+          <ErrorBoundary
+            key={`eb:${state.game.run}`}
+            fallback={(reset) => (
+              <div className="stage game-loading">
+                <span className="game-loading-emoji">🫧</span>
+                <h2>「{meta.name}」刚刚绊了一下</h2>
+                <p className="muted">大厅和纪念册都还在，回大厅换个玩法就好，不用重开房间。</p>
+                <div className="button-row">
+                  <button
+                    className="secondary"
+                    onClick={() => {
+                      send({ type: "exit" });
+                    }}
+                  >
+                    <Icon name="home" size={17} /> 回大厅
+                  </button>
+                  <button className="text-button" onClick={reset}>
+                    再试一次
+                  </button>
+                </div>
+              </div>
+            )}
+          >
+            <GameStageHost
+              key={`${state.game.run}:${welcomeSeq}`}
+              room={state}
+              seat={seat}
+              game={state.game}
+              act={act}
+              send={send}
+              now={now}
+              subscribe={subscribe}
+              onRestart={() => {
+                sfx.tap();
+                send({ type: "start" });
+              }}
+              onExit={() => send({ type: "exit" })}
+            />
+          </ErrorBoundary>
         </main>
       ) : (
         <Lobby
@@ -462,7 +500,7 @@ function LiveRoom({ code, token, onInvalid }: { code: string; token: string; onI
 
       {journalOpen && (
         <Modal title="我们的纪念册" onClose={() => setJournalOpen(false)} wide>
-          <JournalList state={state} />
+          <JournalView codes={[code]} live={state.journal} />
         </Modal>
       )}
     </div>
@@ -662,33 +700,5 @@ function Lobby({
         </span>
       </footer>
     </main>
-  );
-}
-
-function JournalList({ state }: { state: RoomState }) {
-  const entries = [...state.journal].reverse();
-  if (!entries.length) {
-    return (
-      <div className="journal-empty">
-        <span>📖</span>
-        <p>一起玩完第一局，这里就会留下你们的第一条回忆。</p>
-      </div>
-    );
-  }
-  return (
-    <div className="journal-list">
-      {entries.map((j) => (
-        <article key={j.id} className="journal-entry">
-          <span className="journal-icon">{GAME_MAP[j.gameId]?.emoji || "💛"}</span>
-          <div>
-            <header>
-              <b>{j.title}</b>
-              <time>{new Date(j.at).toLocaleString("zh-CN")}</time>
-            </header>
-            <p>{j.detail}</p>
-          </div>
-        </article>
-      ))}
-    </div>
   );
 }

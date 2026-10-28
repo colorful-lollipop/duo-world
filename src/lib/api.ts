@@ -58,3 +58,24 @@ export interface PublicRoomInfo {
 export function getRoomInfo(code: string) {
   return request<PublicRoomInfo>("rooms/" + encodeURIComponent(code));
 }
+
+export interface HistoryResponse {
+  code: string;
+  alive: boolean;
+  entries: {
+    id: string;
+    gameId: string;
+    title: string;
+    detail: string;
+    data: Record<string, unknown> | null;
+    at: number;
+  }[];
+  stats: { wins?: Record<string, [number, number]> };
+}
+
+/** 历史战绩 / 纪念册：token 走 Authorization 头，房间过期后也还能查到。 */
+export function getHistory(code: string, token: string) {
+  return request<HistoryResponse>("rooms/" + encodeURIComponent(code) + "/history", {
+    headers: { Authorization: "Bearer " + token },
+  });
+}

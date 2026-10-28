@@ -93,3 +93,16 @@ systemctl restart duo-world
 ```
 
 当前目录不是 git checkout（是 tar 部署），回滚需保留上一版 tar 或重新从 GitHub Release 构建。
+
+## 数据持久化与备份
+
+- 数据在 `/opt/duo-world/data/duo.db`（SQLite，WAL 模式）；部署脚本只覆盖 `dist server shared`，**不会动 `data/`**，所以发布、重启都不丢纪念册和战绩。
+- 房间热状态 2 秒防抖落盘、结算瞬间写库；退出前 `flushPersistence()` + `wal_checkpoint`。
+- 建议每天备份一次（纪念册 + 战绩是用户数据）：
+
+```bash
+ssh guan "tar -czf /opt/backup/duo-$(date +%F).tar.gz -C /opt/duo-world data && ls -lh /opt/backup/ | tail -3"
+```
+
+- 备份保留策略自己定；服务器磁盘 68G / 剩 28G，一条记录几 KB，量级不用担心。
+- 清理过期房间时只删 `rooms` 表的行，`journal / room_seats / room_stats` 永久保留（这是「小屋过期了回忆还在」的实现方式）。

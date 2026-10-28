@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /metrics
+Disallow: /ws
+
+Sitemap: https://love.zulogic.cn/sitemap.xml

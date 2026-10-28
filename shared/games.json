@@ -369,5 +369,85 @@
         "placeholder": "请喝奶茶 / 洗一次碗 / 做一顿饭"
       }
     ]
+  },
+  {
+    "id": "brothers",
+    "name": "哥俩好",
+    "emoji": "🐒",
+    "tagline": "一根绳子拴着两只猴子，轮流跳，掉下去要互相救",
+    "intro": "两只猴子被一根绳子拴在一起，一前一后往前闯断桥。轮流长按蓄力，按得越久跳得越远；跳空了会挂在绳子上晃，只要还有一个兄弟在，TA 跳成功一次就能把你拉上来。两个都掉下去才算输，一起走到终点就赢。",
+    "rules": [
+      "每人管一只猴子，轮到谁谁跳：按住屏幕蓄力，按得久跳得远",
+      "跳空了会挂在绳子上，TA 跳到下一块平台就能把你拉上来",
+      "两个人都掉下去或者时间到就结束，一起走到终点算赢"
+    ],
+    "tags": [
+      "协作",
+      "手速"
+    ],
+    "duration": "3–5 分钟",
+    "net": "实时同步",
+    "gradient": [
+      "#FFB56B",
+      "#FF6B6B"
+    ],
+    "settings": [
+      {
+        "type": "select",
+        "key": "platforms",
+        "label": "关卡长度",
+        "default": 30,
+        "options": [
+          {
+            "value": 20,
+            "label": "短一点（20 段）"
+          },
+          {
+            "value": 30,
+            "label": "刚好（30 段）"
+          },
+          {
+            "value": 45,
+            "label": "长一点（45 段）"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "spikes",
+        "label": "尖刺陷阱",
+        "default": "on",
+        "options": [
+          {
+            "value": "on",
+            "label": "有陷阱（更刺激）"
+          },
+          {
+            "value": "off",
+            "label": "没有陷阱（更轻松）"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "time",
+        "label": "时间限制",
+        "default": 5,
+        "options": [
+          {
+            "value": 3,
+            "label": "3 分钟"
+          },
+          {
+            "value": 5,
+            "label": "5 分钟"
+          },
+          {
+            "value": 8,
+            "label": "8 分钟"
+          }
+        ]
+      }
+    ]
   }
 ]

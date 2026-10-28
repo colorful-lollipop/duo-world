@@ -4,6 +4,7 @@ const PROFILE_KEY = "duo.profile";
 const LAST_ROOM_KEY = "duo.lastRoom";
 const TOKEN_PREFIX = "duo.token.";
 const SOUND_KEY = "duo.sound";
+const ROOMS_KEY = "duo.rooms";
 
 const AVATARS: AvatarId[] = [
   "bunny",
@@ -60,6 +61,52 @@ export function saveSession(code: string, token: string, profile?: Profile) {
     localStorage.setItem(TOKEN_PREFIX + c, token);
     localStorage.setItem(LAST_ROOM_KEY, c);
     if (profile) saveProfile(profile);
+  } catch {}
+  rememberRoom(c);
+}
+
+export interface KnownRoom {
+  code: string;
+  at: number;
+}
+
+function readRooms(): KnownRoom[] {
+  try {
+    const raw = localStorage.getItem(ROOMS_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return list.filter((r) => r && typeof r.code === "string" && typeof r.at === "number").slice(0, 20);
+  } catch {
+    return [];
+  }
+}
+
+/** 记下玩过的小屋，用于首页「我们的回忆」和找回纪念册。 */
+export function rememberRoom(code: string) {
+  const c = code.toUpperCase();
+  const list = readRooms().filter((r) => r.code !== c);
+  list.unshift({ code: c, at: Date.now() });
+  try {
+    localStorage.setItem(ROOMS_KEY, JSON.stringify(list.slice(0, 20)));
+  } catch {}
+}
+
+export function listKnownRooms(): KnownRoom[] {
+  return readRooms();
+}
+
+/** 带有本地 token 的小屋，才能查它的历史战绩。 */
+export function knownRoomsWithToken(): (KnownRoom & { token: string })[] {
+  return readRooms()
+    .map((r) => ({ ...r, token: getToken(r.code) || "" }))
+    .filter((r) => r.token);
+}
+
+export function forgetRoom(code: string) {
+  const c = code.toUpperCase();
+  try {
+    localStorage.setItem(ROOMS_KEY, JSON.stringify(readRooms().filter((r) => r.code !== c)));
   } catch {}
 }
 

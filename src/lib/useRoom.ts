@@ -26,6 +26,10 @@ export function useRoom(code: string, token: string | null) {
   const listeners = useRef(new Set<Listener>());
   const retryRef = useRef(0);
   const closedByUs = useRef(false);
+  const authedRef = useRef(false);
+  const cidSeq = useRef(0);
+  /** 断网时排队的动作：重连（welcome）后按顺序补发，服务端用 cid 去重 */
+  const pendingRef = useRef(new Map<string, { msg: Record<string, unknown>; at: number }>());
   const reconnectTimer = useRef<number | undefined>(undefined);
   const noticeTimer = useRef<number | undefined>(undefined);
   const lastNotify = useRef({ text: "", at: 0 });
@@ -46,10 +50,45 @@ export function useRoom(code: string, token: string | null) {
 
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
+  const flushPending = useCallback(() => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !authedRef.current) return;
+    const items = [...pendingRef.current.entries()];
+    for (const [cid, { msg }] of items) {
+      try {
+        ws.send(JSON.stringify(msg));
+      } catch {
+        pendingRef.current.delete(cid);
+      }
+    }
+  }, []);
+
   const send = useCallback(
     (msg: Record<string, unknown>) => {
       const ws = wsRef.current;
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      const online = ws && ws.readyState === WebSocket.OPEN && authedRef.current;
+      if (msg.type === "action") {
+        // 动作带 cid：服务端去重 + 客户端按 ack 出队；断网时先排队，连上自动补发
+        const cid = `${Date.now().toString(36)}-${(++cidSeq.current).toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+        const payload = { ...msg, cid };
+        if (online) {
+          try {
+            ws.send(JSON.stringify(payload));
+            if (pendingRef.current.size < 40) pendingRef.current.set(cid, { msg: payload, at: Date.now() });
+            return true;
+          } catch {
+            /* 落到下面的排队 */
+          }
+        }
+        if (pendingRef.current.size < 40) {
+          pendingRef.current.set(cid, { msg: payload, at: Date.now() });
+          notify("网络还没接上，这一步会先存着，连上就补发");
+          return true;
+        }
+        notify("待补发的动作有点多，等网络恢复再试一下");
+        return false;
+      }
+      if (online) {
         ws.send(JSON.stringify(msg));
         return true;
       }
@@ -101,12 +140,18 @@ export function useRoom(code: string, token: string | null) {
         }
         switch (msg.type) {
           case "welcome": {
+            authedRef.current = true;
             setSeat(msg.seat);
             setState(msg.state);
             setStatus("online");
             retryRef.current = 0;
             offsetRef.current = msg.state.now - Date.now();
             setWelcomeSeq((n) => n + 1);
+            flushPending();
+            break;
+          }
+          case "ack": {
+            if (typeof msg.cid === "string") pendingRef.current.delete(msg.cid);
             break;
           }
           case "state": {
@@ -150,6 +195,7 @@ export function useRoom(code: string, token: string | null) {
 
       ws.onopen = () => {
         // token 放在首帧 auth 里，不再出现在 URL / 反代日志中
+        authedRef.current = false;
         try {
           ws.send(JSON.stringify({ type: "auth", token }));
         } catch {}
@@ -160,6 +206,7 @@ export function useRoom(code: string, token: string | null) {
       ws.onclose = (ev) => {
         if (wsRef.current !== ws) return;
         wsRef.current = null;
+        authedRef.current = false;
         if (closedByUs.current) return;
         if (ev.code === 4001 || ev.code === 4004) {
           setStatus("invalid");
@@ -204,7 +251,7 @@ export function useRoom(code: string, token: string | null) {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [code, token, notify, pushReaction]);
+  }, [code, token, notify, pushReaction, flushPending]);
 
   const act = useCallback(
     (action: Record<string, unknown>) => {

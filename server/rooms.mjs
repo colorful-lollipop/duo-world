@@ -2,6 +2,18 @@ import crypto from "node:crypto";
 import { GAME_MAP, allDefaultSettings, sanitizeSettings } from "./meta.mjs";
 import { games } from "./games/index.mjs";
 import { inc, incTicks } from "./observability.mjs";
+import {
+  appendJournal,
+  deleteRoom,
+  findSeatByToken as storeFindSeat,
+  flushStore,
+  getStats,
+  listJournal,
+  loadRooms,
+  saveRoom,
+  saveSeat,
+  saveStats,
+} from "./store.mjs";
 
 export const AVATARS = [
   "bunny",
@@ -24,7 +36,9 @@ export const MOODS = ["normal", "joy", "wow", "sad", "sleep"];
 const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const ROOM_TTL = 12 * 60 * 60 * 1000;
 const MAX_ROOMS = 5000;
+const SAVE_DEBOUNCE = 2000;
 const rooms = new Map();
+const saveTimers = new Map();
 
 export class RoomError extends Error {
   constructor(code, message, status = 400) {
@@ -66,11 +80,53 @@ function makeSeat(profile, token) {
   };
 }
 
+// ---------- 持久化：房间热状态防抖落盘，纪念册/座位/战绩同步写 ----------
+
+function persistRoom(room) {
+  try {
+    saveRoom(room, Date.now() + ROOM_TTL);
+  } catch {}
+}
+
+function saveSeatsFor(room) {
+  room.seats.forEach((s, i) => {
+    if (s.token && s.profile) {
+      try {
+        saveSeat(room.code, i, s.token, s.profile.nickname);
+      } catch {}
+    }
+  });
+}
+
+function markDirty(room) {
+  if (!room?.code) return;
+  const running = saveTimers.get(room.code);
+  if (running) clearTimeout(running);
+  saveTimers.set(
+    room.code,
+    setTimeout(() => {
+      saveTimers.delete(room.code);
+      const live = rooms.get(room.code);
+      if (live) persistRoom(live);
+    }, SAVE_DEBOUNCE),
+  );
+}
+
+function clearDirty(code) {
+  const running = saveTimers.get(code);
+  if (running) clearTimeout(running);
+  saveTimers.delete(code);
+}
+
 export function createRoom(profile) {
   if (rooms.size >= MAX_ROOMS) {
     // 清掉最久没动的房间，给新房间腾位置
     const oldest = [...rooms.values()].sort((a, b) => a.updatedAt - b.updatedAt)[0];
-    if (oldest) rooms.delete(oldest.code);
+    if (oldest) {
+      clearDirty(oldest.code);
+      rooms.delete(oldest.code);
+      deleteRoom(oldest.code);
+    }
   }
   const code = makeCode();
   const token = crypto.randomUUID();
@@ -86,9 +142,12 @@ export function createRoom(profile) {
     game: null,
     journal: [],
     stats: { wins: {} },
+    seenCids: [],
   };
   rooms.set(code, room);
   inc("rooms_created_total");
+  saveSeatsFor(room);
+  persistRoom(room);
   return { room, seat: 0, token };
 }
 
@@ -104,6 +163,9 @@ export function joinRoom(code, profile) {
   const token = crypto.randomUUID();
   room.seats[seat] = makeSeat(profile, token);
   touch(room);
+  try {
+    saveSeat(room.code, seat, token, profile.nickname);
+  } catch {}
   return { room, seat, token };
 }
 
@@ -131,6 +193,7 @@ export function publicInfo(code) {
 export function touch(room) {
   room.updatedAt = Date.now();
   room.version++;
+  markDirty(room);
 }
 
 export function attachSocket(room, seat, ws) {
@@ -210,6 +273,9 @@ export function sendToSeat(room, seat, event) {
 export function setProfile(room, seat, profile) {
   room.seats[seat].profile = sanitizeProfile(profile);
   touch(room);
+  try {
+    saveSeat(room.code, seat, room.seats[seat].token, room.seats[seat].profile.nickname);
+  } catch {}
 }
 
 export function setSettings(room, seat, patch) {
@@ -255,17 +321,22 @@ export function finalizeIfOver(room) {
   const summary = mod?.summary?.(room) || { title: GAME_MAP[room.game.id]?.name || "一起玩过", detail: "" };
   room.game.journaled = true;
   room.game.endedAt = Date.now();
-  room.journal.push({
+  const entry = {
     id: crypto.randomUUID(),
     gameId: room.game.id,
     title: summary.title,
     detail: summary.detail,
     data: summary.data || null,
     at: room.game.endedAt,
-  });
+  };
+  room.journal.push({ ...entry, code: room.code });
   if (room.journal.length > 50) room.journal.shift();
   inc("journal_entries_total");
   touch(room);
+  try {
+    appendJournal({ ...entry, code: room.code });
+    saveStats(room.code, room.stats);
+  } catch {}
   return true;
 }
 
@@ -309,8 +380,97 @@ export function cleanupRooms() {
   const now = Date.now();
   for (const [code, room] of rooms) {
     const anyOnline = room.seats.some((s) => s.ws && s.ws.readyState === 1);
-    if (!anyOnline && now - room.updatedAt > ROOM_TTL) rooms.delete(code);
+    if (!anyOnline && now - room.updatedAt > ROOM_TTL) {
+      clearDirty(code);
+      rooms.delete(code);
+      try {
+        deleteRoom(code);
+      } catch {}
+    }
   }
+}
+
+/**
+ * 启动时把落盘的房间捞回内存（座位连接状态重置，token 保留，客户端会自己重连）。
+ * 纪念册 / 座位 token / 战绩不会删，房间过期后仍然能查历史。
+ */
+export function rehydrate() {
+  const now = Date.now();
+  let restored = 0;
+  for (const raw of loadRooms()) {
+    try {
+      if (!raw || !raw.code || !Array.isArray(raw.seats) || raw.seats.length !== 2) continue;
+      if (raw.updatedAt && now - raw.updatedAt > ROOM_TTL) {
+        try {
+          deleteRoom(raw.code);
+        } catch {}
+        continue;
+      }
+      raw.seats = raw.seats.map((s) => ({ ...s, ws: null }));
+      if (!raw.stats || typeof raw.stats !== "object") raw.stats = { wins: {} };
+      if (!Array.isArray(raw.journal)) raw.journal = [];
+      if (!Array.isArray(raw.seenCids)) raw.seenCids = [];
+      if (!raw.settings || typeof raw.settings !== "object") raw.settings = allDefaultSettings();
+      rooms.set(raw.code, raw);
+      restored++;
+    } catch {}
+  }
+  return restored;
+}
+
+/**
+ * 历史战绩查询：房间还在时用内存 token 校验，房间过期后用落盘的 token 哈希校验。
+ * 只有这间小屋自己的两个人能看。
+ */
+export function historyFor(code, token) {
+  const c = String(code || "").toUpperCase();
+  const room = rooms.get(c);
+  let seat = room ? findSeatByToken(room, token) : -1;
+  if (seat < 0) {
+    try {
+      seat = storeFindSeat(c, token);
+    } catch {
+      seat = -1;
+    }
+  }
+  if (seat < 0) throw new RoomError("FORBIDDEN", "这些回忆只有小屋里的两个人能看到哦", 403);
+
+  const entries = listJournal(c, 500);
+  if (room) {
+    // 兜底：把还没落盘的内存条目也带上
+    const byId = new Map(entries.map((e) => [e.id, e]));
+    for (const e of room.journal) {
+      if (!byId.has(e.id)) byId.set(e.id, { id: e.id, gameId: e.gameId, title: e.title, detail: e.detail, data: e.data || null, at: e.at });
+    }
+    entries.splice(0, entries.length, ...[...byId.values()].sort((a, b) => b.at - a.at));
+  }
+  let wins = room?.stats?.wins;
+  if (!wins) {
+    try {
+      wins = getStats(c)?.wins;
+    } catch {
+      wins = null;
+    }
+  }
+  return { code: c, alive: !!room, entries, stats: { wins: wins || {} } };
+}
+
+/** 进程退出前把所有脏房间写盘。 */
+export function flushPersistence() {
+  for (const [code, timer] of saveTimers) {
+    clearTimeout(timer);
+    const room = rooms.get(code);
+    if (room) persistRoom(room);
+  }
+  saveTimers.clear();
+  for (const room of rooms.values()) {
+    try {
+      saveStats(room.code, room.stats);
+    } catch {}
+  }
+  try {
+    flushStore();
+  } catch {}
 }
 
 export function inkStats(room) {

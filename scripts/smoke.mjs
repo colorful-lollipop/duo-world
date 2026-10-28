@@ -1,8 +1,12 @@
 ﻿import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { WebSocket } from "ws";
 
 const PORT = 18790;
 const BASE = `http://127.0.0.1:${PORT}`;
+const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "duo-smoke-"));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function waitUntil(fn, label = "", timeout = 8000) {
@@ -77,7 +81,7 @@ function assert(cond, msg) {
 let server;
 try {
   server = spawn(process.execPath, ["server/index.mjs"], {
-    env: { ...process.env, PORT: String(PORT) },
+    env: { ...process.env, PORT: String(PORT), DATA_DIR },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout.on("data", () => {});
@@ -365,6 +369,47 @@ try {
   assert(A.state.stats.wins.checkers[1] === 1, "checkers stats");
   console.log("done: checkers move / draw / resign / stats");
 
+  // ---------- 哥俩好 ----------
+  A.send({ type: "exit" });
+  await waitUntil(() => !A.state.game, "exit checkers");
+  A.send({ type: "select", gameId: "brothers" });
+  await waitUntil(() => A.state.gameId === "brothers", "select brothers");
+  A.send({ type: "settings", settings: { platforms: 20, spikes: "off", time: 5 } });
+  await waitUntil(() => A.state.settings.brothers?.platforms === 20, "brothers settings");
+  A.send({ type: "start" });
+  await waitUntil(() => A.game()?.phase === "playing", "brothers start");
+  assert(A.game().platforms.length === 20, "brothers platform count");
+  assert(A.game().mon.length === 2 && A.game().turn === 0, "brothers start state");
+  assert(A.game().mon[0].alive && A.game().mon[1].alive, "both alive");
+
+  {
+    // 轮流跳到下一块平台，一路走到终点
+    const holdForTarget = (d, seatNow, target) =>
+      Math.max(0, Math.min(1300, ((target - d.mon[seatNow].x - 82) / 190) * 1300));
+    let guard = 0;
+    while (A.game().phase === "playing" && guard++ < 200) {
+      const d = A.game();
+      const seatNow = d.turn;
+      const client = seatNow === 0 ? A : B;
+      const me = d.mon[seatNow];
+      const here = d.platforms.find((p) => me.x >= p.x && me.x <= p.x + p.w) || d.platforms[0];
+      const next = d.platforms[Math.min(d.platforms.indexOf(here) + 1, d.platforms.length - 1)];
+      const target = next === here ? d.finishX : next.x + Math.round(next.w / 2);
+      const turnBefore = d.turn;
+      client.act({ type: "jump", hold: holdForTarget(d, seatNow, target) });
+      await waitUntil(
+        () => A.game().turn !== turnBefore || A.game().phase === "over",
+        "brothers jump " + guard,
+      );
+    }
+    await waitUntil(() => A.game().phase === "over", "brothers over");
+  }
+  assert(A.game().overReason === "finish", "brothers reached the end");
+  await waitUntil(() => A.state.journal.some((j) => j.gameId === "brothers"), "brothers journal");
+  const broEntry = A.state.journal.find((j) => j.gameId === "brothers");
+  assert(broEntry.title === "哥俩好" && broEntry.data.finished === true, "brothers journal data");
+  console.log("done: brothers jump / rescue / finish + journal");
+
   // ---------- reaction ----------
   A.send({ type: "reaction", emoji: "🫶" });
   await waitUntil(() => B.reactions.length === 1 && B.reactions[0] === "🫶", "reaction");
@@ -378,6 +423,22 @@ try {
   assert(A2.state.seats[0].connected === true, "reconnected presence");
   assert(A2.state.journal.length >= 5, "journal survived reconnect");
   console.log("done: reconnect with token");
+
+  // 历史战绩 API：本人 token 能查，别人的 token 403
+  const hist = await fetch(`${BASE}/api/rooms/${ticketA.code}/history`, {
+    headers: { Authorization: "Bearer " + ticketA.token },
+  });
+  const histData = await hist.json();
+  assert(hist.status === 200, "history endpoint status");
+  assert(Array.isArray(histData.entries) && histData.entries.length >= 5, "history entries");
+  assert(histData.entries.some((e) => e.gameId === "brothers"), "history keeps brothers entry");
+  assert(histData.entries[0].at >= histData.entries[histData.entries.length - 1].at, "history newest first");
+  assert(typeof histData.alive === "boolean", "history alive flag");
+  const badHist = await fetch(`${BASE}/api/rooms/${ticketA.code}/history`, {
+    headers: { Authorization: "Bearer nope" },
+  });
+  assert(badHist.status === 403, "history needs own token");
+  console.log("done: history api + token guard");
 
   // 错误的 token 会被拒绝
   const badCode = await new Promise((resolve) => {
@@ -401,4 +462,5 @@ try {
     server.kill();
     await sleep(300);
   }
+  fs.rmSync(DATA_DIR, { recursive: true, force: true });
 }

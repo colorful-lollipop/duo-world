@@ -20,10 +20,13 @@ import {
   detachSocket,
   exitGame,
   findSeatByToken,
+  flushPersistence,
   getRoom,
   handleAction,
+  historyFor,
   joinRoom,
   publicInfo,
+  rehydrate,
   roomCount,
   sanitizeProfile,
   selectGame,
@@ -33,6 +36,7 @@ import {
   startGame,
   tickRooms,
 } from "./rooms.mjs";
+import { closeStore, storeInfo } from "./store.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 8790;
@@ -128,7 +132,13 @@ app.use("/api", apiLimiter);
 
 app.get("/api/health", (req, res) => {
   setRoomsActive(roomCount());
-  res.json({ ok: true, games: GAMES.length, rooms: roomCount(), uptime: Math.round(process.uptime()) });
+  res.json({
+    ok: true,
+    games: GAMES.length,
+    rooms: roomCount(),
+    store: storeInfo().kind,
+    uptime: Math.round(process.uptime()),
+  });
 });
 
 app.get("/metrics", (req, res) => {
@@ -195,6 +205,18 @@ app.get("/api/rooms/:code", infoLimiter, (req, res, next) => {
   }
 });
 
+// 历史战绩 / 纪念册：token 走 Authorization 头（不进 URL、不进访问日志）
+app.get("/api/rooms/:code/history", infoLimiter, (req, res, next) => {
+  try {
+    const header = String(req.headers.authorization || "");
+    const token = header.replace(/^Bearer\s+/i, "").trim();
+    if (!token) throw new RoomError("NEED_TOKEN", "需要先认领你自己的座位", 401);
+    res.json(historyFor(req.params.code, token));
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.use((err, req, res, next) => {
   if (err instanceof RoomError) {
     res.status(err.status).json({ code: err.code, message: err.message });
@@ -211,6 +233,11 @@ const server = http.createServer(app);
 // ---------- 静态文件（生产模式：vite build 之后的 dist） ----------
 const dist = path.join(__dirname, "..", "dist");
 if (fs.existsSync(dist)) {
+  // Service Worker 必须每次回源校验，否则新版发布后客户端会一直跑旧壳
+  app.get("/sw.js", (req, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.type("application/javascript").sendFile(path.join(dist, "sw.js"));
+  });
   app.use(express.static(dist, { index: false, maxAge: "1h" }));
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api/") || req.path === "/api") return next();
@@ -361,10 +388,26 @@ wss.on("connection", (ws, req, { room }) => {
           if (!allow()) return;
           const gameId = room.game?.id;
           const actionType = msg.action?.type;
-          handleAction(room, seat, msg.action || {});
-          broadcastState(room);
-          if (gameId === "draw-guess" && ["choose", "undo", "clear", "next"].includes(actionType)) {
-            sendInkSync(room);
+          // 动作幂等：客户端离线时排队重发的动作带 cid，服务端去重
+          const cid = typeof msg.cid === "string" ? msg.cid.slice(0, 64) : "";
+          if (cid) {
+            if (room.seenCids.includes(cid)) {
+              ws.send(JSON.stringify({ type: "ack", cid, ok: true, dup: true }));
+              return;
+            }
+            room.seenCids.push(cid);
+            if (room.seenCids.length > 400) room.seenCids.splice(0, room.seenCids.length - 400);
+          }
+          try {
+            handleAction(room, seat, msg.action || {});
+            if (cid) ws.send(JSON.stringify({ type: "ack", cid, ok: true }));
+            broadcastState(room);
+            if (gameId === "draw-guess" && ["choose", "undo", "clear", "next"].includes(actionType)) {
+              sendInkSync(room);
+            }
+          } catch (err) {
+            if (cid) ws.send(JSON.stringify({ type: "ack", cid, ok: false, error: err?.message || err }));
+            throw err;
           }
           return;
         }
@@ -472,6 +515,9 @@ const heartbeat = setInterval(() => {
 
 const cleaner = setInterval(cleanupRooms, 10 * 60 * 1000);
 
+const restored = rehydrate();
+log("info", "startup", { port: PORT, restoredRooms: restored, store: storeInfo().kind });
+
 server.listen(PORT, HOST, () => {
   console.log("\n  二人世界 · 服务已启动");
   console.log(`  ➜  本机:   http://localhost:${PORT}`);
@@ -493,8 +539,21 @@ function shutdown() {
   clearInterval(tickTimer);
   clearInterval(heartbeat);
   clearInterval(cleaner);
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(0), 1500);
+  try {
+    flushPersistence();
+  } catch {}
+  server.close(() => {
+    try {
+      closeStore();
+    } catch {}
+    process.exit(0);
+  });
+  setTimeout(() => {
+    try {
+      closeStore();
+    } catch {}
+    process.exit(0);
+  }, 1500);
 }
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

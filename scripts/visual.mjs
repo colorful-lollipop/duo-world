@@ -1,10 +1,13 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { chromium } from "playwright-core";
 
 const CHROME = process.env.CHROME_PATH || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const PORT = 18791;
 const BASE = `http://127.0.0.1:${PORT}`;
+const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "duo-visual-"));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const shots = "_shots";
 fs.mkdirSync(shots, { recursive: true });
@@ -19,7 +22,7 @@ const dims = async (page, label) => {
 };
 
 const server = spawn(process.execPath, ["server/index.mjs"], {
-  env: { ...process.env, PORT: String(PORT) },
+  env: { ...process.env, PORT: String(PORT), DATA_DIR },
   stdio: ["ignore", "pipe", "pipe"],
 });
 server.stderr.on("data", (d) => process.stderr.write("[server] " + d));
@@ -274,6 +277,58 @@ try {
   await A.setViewportSize({ width: 420, height: 900 });
   await sleep(200);
 
+  // 哥俩好（协作跳桥）
+  await A.getByRole("button", { name: /回大厅/ }).click();
+  await A.getByRole("button", { name: "回大厅" }).last().click();
+  await A.waitForSelector(".pair-banner");
+  await sleep(300);
+  await A.locator(".picker-card", { hasText: "哥俩好" }).click();
+  await sleep(250);
+  await A.getByRole("button", { name: /开始游戏/ }).click();
+  await A.waitForSelector(".brothers-world");
+  await sleep(600);
+  await dims(A, "brothers");
+  await A.screenshot({ path: `${shots}/brothers.png`, fullPage: true });
+  const doHold = async (p, ms) => {
+    const world = p.locator(".brothers-world");
+    if (!(await world.count())) return false;
+    const box = await world.boundingBox();
+    if (!box) return false;
+    await p.mouse.move(box.x + box.width / 2, box.y + box.height * 0.6);
+    await p.mouse.down();
+    await sleep(ms);
+    await p.mouse.up();
+    await sleep(950);
+    return true;
+  };
+  // 前两跳用小蓄力，稳稳落在起点平台
+  await doHold(A, 240);
+  await doHold(B, 240);
+  await A.setViewportSize({ width: 375, height: 667 });
+  await sleep(400);
+  await dims(A, "brothers-small");
+  await A.screenshot({ path: `${shots}/brothers-small.png`, fullPage: true });
+  await A.setViewportSize({ width: 420, height: 900 });
+  await sleep(200);
+  // 再来两跳大蓄力：很可能掉进坑里挂着、再被同伴拉上来
+  await doHold(A, 1300);
+  await A.screenshot({ path: `${shots}/brothers-hang.png`, fullPage: true });
+  await doHold(B, 1300);
+  await A.screenshot({ path: `${shots}/brothers-jump.png`, fullPage: true });
+  await B.screenshot({ path: `${shots}/brothers-b.png`, fullPage: true });
+
+  // 纪念册（历史战绩弹窗）
+  await A.getByRole("button", { name: /回大厅/ }).click();
+  await A.getByRole("button", { name: "回大厅" }).last().click();
+  await A.waitForSelector(".pair-banner");
+  await sleep(300);
+  await A.locator(".pair-actions .text-button", { hasText: "纪念册" }).click();
+  await A.waitForSelector(".journal-view, .journal-empty");
+  await sleep(500);
+  await A.screenshot({ path: `${shots}/journal.png`, fullPage: true });
+  await A.getByRole("button", { name: "关闭", exact: true }).click();
+  await sleep(200);
+
   await ctxA.close();
   await ctxB.close();
   console.log("screenshots done");
@@ -284,4 +339,5 @@ try {
   await browser?.close();
   server.kill();
   await sleep(300);
+  fs.rmSync(DATA_DIR, { recursive: true, force: true });
 }

@@ -192,11 +192,11 @@ export default {
       if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from > 63 || to < 0 || to > 63) {
         return "这里不能走";
       }
+      if (d.chainFrom !== null && from !== d.chainFrom) return "还在连跳，必须从刚才落下的那格继续";
       const moves = d.legal[from];
       if (!moves) return "先选一个自己的棋子";
       const move = moves.find((m) => m.to === to);
       if (!move) return "这一步走不到";
-      if (d.chainFrom !== null && from !== d.chainFrom) return "还在连跳，必须从刚才落下的那格继续";
       applyMove(room, d, from, to, move.captures);
       return null;
     }
