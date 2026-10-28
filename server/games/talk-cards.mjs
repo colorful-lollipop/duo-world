@@ -1,5 +1,9 @@
 import { cardsForDeck } from "./_talk-cards.deck.mjs";
 
+const SAY_MAX = 120;
+const SAY_GAP = 250;
+const SAY_KEEP = 60;
+
 function pickCard(data) {
   const pool = cardsForDeck(data.deck);
   let available = pool.filter((c) => !data.used.includes(c.id));
@@ -8,6 +12,14 @@ function pickCard(data) {
     available = pool;
   }
   return available[Math.floor(Math.random() * available.length)];
+}
+
+/** 聊天文本归一化：trim + 按字符（而非 UTF-16 单元）截到 120 字；空文本返回 null。 */
+function normalizeSay(raw) {
+  const text = String(raw ?? "").trim();
+  if (!text) return null;
+  const chars = Array.from(text);
+  return chars.length > SAY_MAX ? chars.slice(0, SAY_MAX).join("") : text;
 }
 
 export default {
@@ -24,6 +36,9 @@ export default {
       shownCount: 0,
       favorites: [[], []],
       hint: "",
+      messages: [],
+      msgSeq: 0,
+      lastSay: [0, 0],
     };
   },
 
@@ -69,6 +84,20 @@ export default {
       else list.push(d.card);
       return null;
     }
+    if (action?.type === "say") {
+      if (d.phase === "over") return "这一局已经聊完啦";
+      // 兼容上线前就在内存 / sqlite 里的旧房间
+      if (!Array.isArray(d.messages)) d.messages = [];
+      if (!Array.isArray(d.lastSay)) d.lastSay = [0, 0];
+      if (typeof d.msgSeq !== "number") d.msgSeq = 0;
+      if (now - (d.lastSay[seat] || 0) < SAY_GAP) return "说慢一点嘛，刚才那句我还没看完";
+      const text = normalizeSay(action.text);
+      if (text === null) return "想说点什么呢，不能发空消息";
+      d.messages.push({ id: String(++d.msgSeq), seat, text, at: now });
+      if (d.messages.length > SAY_KEEP) d.messages.splice(0, d.messages.length - SAY_KEEP);
+      d.lastSay[seat] = now;
+      return null;
+    }
     if (action?.type === "finish") {
       d.phase = "over";
       return null;
@@ -79,9 +108,10 @@ export default {
   summary(room) {
     const d = room.game.data;
     const favs = d.favorites[0].length + d.favorites[1].length;
+    const chat = d.messages?.length || 0;
     return {
       title: "深夜聊天卡",
-      detail: `一起翻开了 ${d.shownCount} 张卡${favs ? `，收藏了 ${favs} 张` : ""}`,
+      detail: `一起翻开了 ${d.shownCount} 张卡${favs ? `，收藏了 ${favs} 张` : ""}${chat ? `，聊了 ${chat} 句` : ""}`,
     };
   },
 };

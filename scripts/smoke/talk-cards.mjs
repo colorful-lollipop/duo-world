@@ -15,6 +15,20 @@ export default async function run({ A, B, waitUntil, assert, sleep }) {
   turnClient.act({ type: "draw" });
   await waitUntil(() => turnClient.game().phase === "shown" && turnClient.game().card, "talk drawn");
   assert(turnClient.game().flipAt > Date.now() - 1000, "flip timestamp");
+
+  // 文字聊天：两边各发一条，互相可见、座位正确、文本被 trim
+  A.act({ type: "say", text: "  今晚月色真美  " });
+  B.act({ type: "say", text: "  是呀，风也温柔  " });
+  await waitUntil(
+    () => A.game()?.messages?.length === 2 && B.game()?.messages?.length === 2,
+    "talk chat visible to both",
+  );
+  const chatBySeat = new Map(A.game().messages.map((m) => [m.seat, m]));
+  assert(chatBySeat.get(A.seat)?.text === "今晚月色真美", "chat from A trimmed");
+  assert(chatBySeat.get(B.seat)?.text === "是呀，风也温柔", "chat from B trimmed");
+  assert(chatBySeat.get(A.seat)?.at && chatBySeat.get(B.seat)?.at, "chat timestamps");
+  assert(chatBySeat.get(A.seat)?.id !== chatBySeat.get(B.seat)?.id, "chat ids unique");
+
   turnClient.act({ type: "fav" });
   await waitUntil(() => turnClient.game().favorites[turn].length === 1, "talk favorite");
 
@@ -25,6 +39,7 @@ export default async function run({ A, B, waitUntil, assert, sleep }) {
   const idxAfterReroll = turnClient.game().idx;
   turnClient.act({ type: "next" });
   await waitUntil(() => turnClient.game().idx === idxAfterReroll + 1 && turnClient.game().phase === "draw", "talk next");
+  assert(turnClient.game().messages.length === 2, "talk chat survives reroll / next");
 
   const nextTurnClient = turn === 0 ? B : A;
   nextTurnClient.act({ type: "draw" });
