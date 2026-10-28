@@ -106,22 +106,26 @@ export function HomePage() {
               </button>
             </div>
 
-            {last && (
-              <button className="last-room-link" onClick={() => navigate(`/r/${last.code}`)}>
-                <Icon name="clock" size={16} /> 回到上次的小屋 <b>{last.code}</b> →
-              </button>
-            )}
+            {(last || known.length > 0) && (
+              <div className="title-links">
+                {last && (
+                  <button className="last-room-link" onClick={() => navigate(`/r/${last.code}`)}>
+                    <Icon name="clock" size={16} /> 回到上次的小屋 <b>{last.code}</b> →
+                  </button>
+                )}
 
-            {known.length > 0 && (
-              <button className="last-room-link memory-link" onClick={() => setModal("memory")}>
-                <Icon name="book" size={16} /> 我们的回忆 <b>{known.length}</b> 间小屋 →
-              </button>
-            )}
+                {known.length > 0 && (
+                  <button className="last-room-link memory-link" onClick={() => setModal("memory")}>
+                    <Icon name="book" size={16} /> 我们的回忆 <b>{known.length}</b> 间小屋 →
+                  </button>
+                )}
 
-            {known.length > 0 && (
-              <button className="last-room-link memory-link" onClick={() => setModal("data")}>
-                <Icon name="lock" size={16} /> 我的数据 · 导出 / 删除
-              </button>
+                {known.length > 0 && (
+                  <button className="last-room-link memory-link" onClick={() => setModal("data")}>
+                    <Icon name="lock" size={16} /> 我的数据
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

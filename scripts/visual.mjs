@@ -76,6 +76,63 @@ try {
   await dims(home, "privacy-desktop");
   await home.screenshot({ path: `${shots}/privacy.png`, fullPage: true });
   await desktop.close();
+  // 老用户回到首页（有历史小屋 → 多出「回到上次的小屋 / 我们的回忆 / 我的数据」三行链接）
+  // 这是最容易把标题区顶长的状态，1366×700 这类矮屏必须不重叠、不出现页面滚动条
+  const backCtx = await browser.newContext({ viewport: { width: 1366, height: 700 } });
+  const back = await backCtx.newPage();
+  await back.addInitScript(() => {
+    localStorage.setItem(
+      "duo.profile",
+      JSON.stringify({ nickname: "阿满", avatar: "bunny", color: "#FF6B6B", mood: "joy" }),
+    );
+    localStorage.setItem(
+      "duo.rooms",
+      JSON.stringify([
+        { code: "VH859J", at: Date.now() },
+        { code: "8KQ2M4", at: Date.now() - 86400000 },
+      ]),
+    );
+    localStorage.setItem("duo.token.VH859J", "seed-token-a");
+    localStorage.setItem("duo.token.8KQ2M4", "seed-token-b");
+    localStorage.setItem("duo.lastRoom", "VH859J");
+    localStorage.setItem("duo.consent", JSON.stringify({ version: "2026-10-28", at: 1 }));
+  });
+  await back.goto(BASE, { waitUntil: "networkidle" });
+  await sleep(600);
+  await dims(back, "home-returning");
+  const layout = await back.evaluate(() => {
+    const r = (sel) => document.querySelector(sel)?.getBoundingClientRect();
+    const copy = r(".title-copy");
+    const art = r(".title-art");
+    const strip = r(".home-game-strip");
+    const links = r(".title-links");
+    return {
+      copyBottom: copy ? Math.round(copy.bottom) : null,
+      artBottom: art ? Math.round(art.bottom) : null,
+      stripTop: strip ? Math.round(strip.top) : null,
+      linksBottom: links ? Math.round(links.bottom) : null,
+      copyScrolls: document.querySelector(".title-copy")
+        ? document.querySelector(".title-copy").scrollHeight >
+          document.querySelector(".title-copy").clientHeight + 1
+        : false,
+    };
+  });
+  console.log("LAYOUT home-returning:", JSON.stringify(layout));
+  if (layout.stripTop !== null && layout.copyBottom > layout.stripTop) {
+    console.log("LAYOUT PROBLEM: 标题区压到了玩法条");
+    process.exitCode = 1;
+  }
+  if (layout.stripTop !== null && layout.artBottom > layout.stripTop) {
+    console.log("LAYOUT PROBLEM: 插画压到了玩法条");
+    process.exitCode = 1;
+  }
+  await back.screenshot({ path: `${shots}/home-returning.png`, fullPage: true });
+  await back.setViewportSize({ width: 375, height: 667 });
+  await sleep(400);
+  await dims(back, "home-returning-small");
+  await back.screenshot({ path: `${shots}/home-returning-small.png`, fullPage: true });
+  await backCtx.close();
+
   // 首页手机
   const mobileHomeCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const mhome = await mobileHomeCtx.newPage();
