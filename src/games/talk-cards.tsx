@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./talk-cards.css";
 import type { ResultExtraProps, StageProps } from "./types";
 import { Critter } from "../components/Critter";
@@ -24,10 +24,28 @@ export function TalkCardsStage(props: StageProps) {
   const turnProfile = room.seats[d.turn]?.profile;
   const myFavorites = d.favorites?.[seat] || [];
   const favorited = !!d.card && myFavorites.some((c: any) => c.id === d.card.id);
+  const messages: any[] = d.messages || [];
+  const lastMsgId = messages.length ? messages[messages.length - 1].id : "";
+  const [chatText, setChatText] = useState("");
+  const chatListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (revealed) sfx.flip();
   }, [revealed, d.card?.id]);
+
+  useEffect(() => {
+    const el = chatListRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [lastMsgId]);
+
+  const sendChat = () => {
+    const text = chatText.trim();
+    if (!text) return;
+    if (act({ type: "say", text })) {
+      setChatText("");
+      sfx.tap();
+    }
+  };
 
   return (
     <section className="stage talk-stage">
@@ -45,87 +63,133 @@ export function TalkCardsStage(props: StageProps) {
         </button>
       </div>
 
-      <div className="talk-card-stage">
-        <button
-          className={"talk-card " + (revealed ? "is-revealed" : "") + (isTurn && d.phase === "draw" ? " can-draw" : "")}
-          onClick={() => {
-            if (!isTurn || d.phase !== "draw") return;
-            sfx.tap();
-            act({ type: "draw" });
-          }}
-          disabled={!isTurn || d.phase !== "draw"}
-          aria-label={d.phase === "draw" ? (isTurn ? "抽一张卡" : "等对方抽卡") : "聊天卡"}
-        >
-          <div className="talk-card-inner">
-            <div className="talk-card-face talk-card-back">
-              <span className="card-moon" aria-hidden="true">
-                🌙
-              </span>
-              <span className="card-stars" aria-hidden="true">
-                ✦ · ✧ · ✦
-              </span>
-              <strong>深夜聊天卡</strong>
-              <span className="card-back-hint">
-                {d.phase === "shown" ? "正在一起翻开…" : isTurn ? "轻点卡片，开启一段对话" : "等 TA 抽一张卡"}
-              </span>
-              <span className="card-deck-tag">{DECK_LABEL[d.deck] || d.deck}</span>
-            </div>
-            <div className="talk-card-face talk-card-front">
-              {d.card ? (
-                <>
-                  <span className="card-deck">{DECK_LABEL[d.card.deck] || d.card.deck}</span>
-                  <p className="card-question">{d.card.text}</p>
-                  <span className="card-foot">
-                    {d.card.deck === "小挑战"
-                      ? `${turnProfile?.nickname || "TA"}，轮到你啦`
-                      : "没有标准答案，只想多懂你一点"}
-                  </span>
-                  <span className="card-index">第 {d.shownCount} 张</span>
-                </>
-              ) : null}
-            </div>
-          </div>
-        </button>
-      </div>
-
-      <div className="talk-actions">
-        {revealed && d.card ? (
-          <>
+      <div className="talk-body">
+        <div className="talk-main">
+          <div className="talk-card-stage">
             <button
-              className="primary big"
+              className={"talk-card " + (revealed ? "is-revealed" : "") + (isTurn && d.phase === "draw" ? " can-draw" : "")}
               onClick={() => {
+                if (!isTurn || d.phase !== "draw") return;
                 sfx.tap();
-                act({ type: "next" });
+                act({ type: "draw" });
               }}
+              disabled={!isTurn || d.phase !== "draw"}
+              aria-label={d.phase === "draw" ? (isTurn ? "抽一张卡" : "等对方抽卡") : "聊天卡"}
             >
-              聊好了，下一张 <span aria-hidden="true">→</span>
+              <div className="talk-card-inner">
+                <div className="talk-card-face talk-card-back">
+                  <span className="card-moon" aria-hidden="true">
+                    🌙
+                  </span>
+                  <span className="card-stars" aria-hidden="true">
+                    ✦ · ✧ · ✦
+                  </span>
+                  <strong>深夜聊天卡</strong>
+                  <span className="card-back-hint">
+                    {d.phase === "shown" ? "正在一起翻开…" : isTurn ? "轻点卡片，开启一段对话" : "等 TA 抽一张卡"}
+                  </span>
+                  <span className="card-deck-tag">{DECK_LABEL[d.deck] || d.deck}</span>
+                </div>
+                <div className="talk-card-face talk-card-front">
+                  {d.card ? (
+                    <>
+                      <span className="card-deck">{DECK_LABEL[d.card.deck] || d.card.deck}</span>
+                      <p className="card-question">{d.card.text}</p>
+                      <span className="card-foot">
+                        {d.card.deck === "小挑战"
+                          ? `${turnProfile?.nickname || "TA"}，轮到你啦`
+                          : "没有标准答案，只想多懂你一点"}
+                      </span>
+                      <span className="card-index">第 {d.shownCount} 张</span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
             </button>
-            <div className="talk-tools">
-              <button
-                className={"secondary small " + (favorited ? "active" : "")}
-                onClick={() => {
-                  sfx.reaction();
-                  act({ type: "fav" });
-                }}
-                aria-pressed={favorited}
-              >
-                <Icon name="heart" size={17} filled={favorited} /> {favorited ? "已收进小本子" : "喜欢这张"}
-              </button>
-              <button
-                className="secondary small"
-                onClick={() => {
-                  sfx.tap();
-                  act({ type: "reroll" });
-                }}
-              >
-                换一张
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="stage-hint">慢慢聊，不着急。想跳过的问题，随时可以换一张。</p>
-        )}
-        {d.phase === "shown" && !revealed && <p className="stage-hint">3、2、1… 一起翻开</p>}
+          </div>
+
+          <div className="talk-actions">
+            {revealed && d.card ? (
+              <>
+                <button
+                  className="primary big"
+                  onClick={() => {
+                    sfx.tap();
+                    act({ type: "next" });
+                  }}
+                >
+                  聊好了，下一张 <span aria-hidden="true">→</span>
+                </button>
+                <div className="talk-tools">
+                  <button
+                    className={"secondary small " + (favorited ? "active" : "")}
+                    onClick={() => {
+                      sfx.reaction();
+                      act({ type: "fav" });
+                    }}
+                    aria-pressed={favorited}
+                  >
+                    <Icon name="heart" size={17} filled={favorited} /> {favorited ? "已收进小本子" : "喜欢这张"}
+                  </button>
+                  <button
+                    className="secondary small"
+                    onClick={() => {
+                      sfx.tap();
+                      act({ type: "reroll" });
+                    }}
+                  >
+                    换一张
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="stage-hint">慢慢聊，不着急。想跳过的问题，随时可以换一张。</p>
+            )}
+            {d.phase === "shown" && !revealed && <p className="stage-hint">3、2、1… 一起翻开</p>}
+          </div>
+        </div>
+
+        <div className="talk-chat">
+          <div className="talk-chat-head">
+            <span>💬 边聊边抽</span>
+            <span className="talk-chat-count">{messages.length ? `${messages.length} 句` : "还没开口"}</span>
+          </div>
+          <div className="talk-chat-messages" ref={chatListRef}>
+            {messages.length === 0 ? (
+              <p className="talk-chat-empty">抽到卡之后，可以在这里打字聊聊</p>
+            ) : (
+              messages.map((m: any) => {
+                const mine = m.seat === seat;
+                const who = room.seats[m.seat]?.profile?.nickname || "TA";
+                return (
+                  <div key={m.id} className={"talk-chat-row " + (mine ? "mine" : "theirs")}>
+                    <span className="talk-chat-who">{mine ? "你" : who}</span>
+                    <div className="talk-chat-bubble">{m.text}</div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div className="talk-chat-input">
+            <input
+              type="text"
+              value={chatText}
+              maxLength={120}
+              placeholder="打个字回应 TA…"
+              aria-label="聊天输入框"
+              onChange={(e) => setChatText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  sendChat();
+                }
+              }}
+            />
+            <button className="secondary small" onClick={sendChat} disabled={!chatText.trim()}>
+              发送
+            </button>
+          </div>
+        </div>
       </div>
 
       {confirmEnd && (
