@@ -45,7 +45,17 @@ try {
   const home = await desktop.newPage();
   await home.goto(BASE, { waitUntil: "networkidle" });
   await sleep(500);
+  await dims(home, "home-desktop");
   await home.screenshot({ path: `${shots}/home-desktop.png`, fullPage: true });
+  await home.getByRole("button", { name: "玩法一览" }).click();
+  await home.waitForSelector(".modal");
+  await sleep(400);
+  await home.screenshot({ path: `${shots}/home-games-modal.png`, fullPage: true });
+  await home.getByRole("button", { name: "关闭", exact: true }).click();
+  await home.getByRole("button", { name: "创建我们的小屋" }).click();
+  await home.waitForSelector(".modal .profile-form");
+  await sleep(400);
+  await home.screenshot({ path: `${shots}/home-create-modal.png`, fullPage: true });
   await desktop.close();
 
   // 首页手机
@@ -53,6 +63,7 @@ try {
   const mhome = await mobileHomeCtx.newPage();
   await mhome.goto(BASE, { waitUntil: "networkidle" });
   await sleep(400);
+  await dims(mhome, "home-mobile");
   await mhome.screenshot({ path: `${shots}/home-mobile.png`, fullPage: true });
   await mobileHomeCtx.close();
 
@@ -61,8 +72,10 @@ try {
   const A = await ctxA.newPage();
   A.on("pageerror", (e) => console.log("A PAGE ERROR:", e.message));
   await A.goto(BASE, { waitUntil: "networkidle" });
-  await A.getByLabel("昵称").fill("阿满");
   await A.getByRole("button", { name: "创建我们的小屋" }).click();
+  await A.waitForSelector(".modal .profile-form");
+  await A.getByLabel("昵称").fill("阿满");
+  await A.locator(".modal .profile-form .primary").click();
   await A.waitForURL(/\/r\/[A-Z0-9]+/);
   await A.waitForSelector(".pair-banner");
   const code = A.url().split("/r/")[1];
