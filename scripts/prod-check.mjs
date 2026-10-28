@@ -163,6 +163,28 @@ try {
   console.log("delete:", del);
   if (del.status !== 200 || !del.ok) problems.push("注销接口异常: " + JSON.stringify(del));
 
+  // 回到首页（本地已有历史小屋）→ 矮屏下标题区不能压到玩法条（v1.3.1 回归）
+  await A.setViewportSize({ width: 1366, height: 700 });
+  await A.goto(BASE + "/", { waitUntil: "networkidle" });
+  await sleep(600);
+  const homeLayout = await A.evaluate(() => {
+    const r = (s) => document.querySelector(s)?.getBoundingClientRect();
+    const links = r(".title-links");
+    const strip = r(".home-game-strip");
+    return {
+      links: links ? Math.round(links.bottom) : null,
+      strip: strip ? Math.round(strip.top) : null,
+      doc: document.documentElement.scrollHeight,
+      ih: window.innerHeight,
+    };
+  });
+  console.log("home layout:", homeLayout);
+  if (homeLayout.links === null) problems.push("首页没有渲染历史小屋链接");
+  if (homeLayout.links !== null && homeLayout.strip !== null && homeLayout.links > homeLayout.strip) {
+    problems.push("首页标题区压到了玩法条: " + JSON.stringify(homeLayout));
+  }
+  if (homeLayout.doc > homeLayout.ih + 2) problems.push("首页出现页面级滚动条");
+
   await ctxA.close();
   await ctxB.close();
 } catch (err) {
