@@ -108,6 +108,26 @@ export function MindMeldStage(props: StageProps) {
                 autoFocus
               />
             </label>
+            {!mySubmitted && d.prompts?.length > 0 && (
+              <div className="mind-prompts">
+                <span className="mind-prompts-hint">没灵感？点一个词</span>
+                <div className="mind-prompt-chips">
+                  {d.prompts.map((p: string) => (
+                    <button
+                      type="button"
+                      key={p}
+                      className={"mind-prompt-chip" + (word === p ? " active" : "")}
+                      onClick={() => {
+                        sfx.tap();
+                        setWord(p);
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <p className="small-print muted">1–12 个字，不能和之前的词重复。慢慢想，TA 看不到你写了什么。</p>
             <button className="primary wide" disabled={!word.trim() || mySubmitted}>
               {mySubmitted ? "等 TA 写好啦" : "写好了，一起揭晓"}

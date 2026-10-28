@@ -13,6 +13,19 @@ export default async function run({ A, B, waitUntil, assert, sleep }) {
   });
 
   const total = A.game().total;
+  assert(total === 8, "know total matches setting");
+  for (const q of A.game().questions) {
+    assert(["choice", "scale", "text"].includes(q.type), "know type " + q.id);
+    if (q.type === "choice") {
+      assert(Array.isArray(q.options) && q.options.length >= 2, "know choice options " + q.id);
+      assert(!q.left && !q.right, "know choice has no scale fields " + q.id);
+    } else if (q.type === "scale") {
+      assert(!!q.left && !!q.right, "know scale fields " + q.id);
+      assert(!q.options, "know scale has no options " + q.id);
+    } else {
+      assert(!q.options && !q.left && !q.right, "know text has no extra fields " + q.id);
+    }
+  }
   for (let round = 0; round < total; round++) {
     const q = A.game().question;
     const answerFor = (offset) => {

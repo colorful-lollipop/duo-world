@@ -1,3 +1,5 @@
+import { pickPrompts } from "./_mind-meld.prompts.mjs";
+
 function norm(s) {
   return String(s || "")
     .toLowerCase()
@@ -25,6 +27,7 @@ export default {
       roundMatched: false,
       matched: 0,
       lastGain: 0,
+      prompts: pickPrompts([], 6),
     };
   },
 
@@ -75,6 +78,7 @@ export default {
       d.agrees = [false, false];
       d.roundMatched = false;
       d.lastGain = 0;
+      d.prompts = pickPrompts(d.history, 6);
       return null;
     }
     return "这个操作暂时不可以";
