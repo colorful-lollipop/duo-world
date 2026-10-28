@@ -3,6 +3,30 @@
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.3.0] - 2026-10-28
+
+### 新增
+
+- **用户协议与隐私政策**：站内 `/terms`、`/privacy` 两页，文案放在 `src/lib/legal.ts`，
+  首页页脚常驻入口；首次创建 / 加入小屋必须勾选同意（同意版本记在本地，改版会再问一次）。
+- **我的数据（导出 / 注销）**：首页新增「我的数据」弹窗，可以按小屋导出 JSON
+  （纪念册 + 战绩 + 座位昵称），也可以一键删除整间小屋的全部数据。
+  对应接口 `GET /api/rooms/:code/export`、`DELETE /api/rooms/:code`，都要求本人 token。
+- **一键备份**：`npm run backup`（`scripts/backup.mjs`）先 `wal_checkpoint(TRUNCATE)` 再快照到
+  `data/backups/`，自带保留策略与 `--verify` 行数校验；配套运维手册 `docs/BACKUP.md`
+  （含 systemd timer 与恢复演练步骤）。
+
+### 变更
+
+- `sitemap.xml` 收录 `/terms`、`/privacy`。
+- 删除数据走 `store.purgeRoom()`：`rooms / journal / room_seats / room_stats` 四张表一起清，
+  内存里的房间与防抖定时器同步清掉。
+
+### 测试
+
+- 单测新增 `store.purgeRoom / clearJournal` 与 `rooms.exportRoom / purgeRoom`（共 90 例）
+- 烟测新增数据导出、注销以及「删完之后历史 403、房间 404」断言
+
 ## [1.2.0] - 2026-10-28
 
 ### 新增

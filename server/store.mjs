@@ -305,3 +305,36 @@ export function closeStore() {
 export function storeInfo() {
   return { kind: backendKind, file: backendKind === "sqlite" ? DB_FILE : JSON_FILE };
 }
+
+/** 彻底删掉一间小屋的全部落盘数据（用户主动注销用）。 */
+export function purgeRoom(code) {
+  ensure();
+  if (backendKind === "sqlite") {
+    const counts = {
+      rooms: sqlite.prepare("DELETE FROM rooms WHERE code=?").run(code).changes,
+      journal: sqlite.prepare("DELETE FROM journal WHERE code=?").run(code).changes,
+      seats: sqlite.prepare("DELETE FROM room_seats WHERE code=?").run(code).changes,
+      stats: sqlite.prepare("DELETE FROM room_stats WHERE code=?").run(code).changes,
+    };
+    return counts;
+  }
+  const before = jsonData.journal.length;
+  delete jsonData.rooms[code];
+  delete jsonData.seats[code];
+  delete jsonData.stats[code];
+  jsonData.journal = jsonData.journal.filter((j) => j.code !== code);
+  writeJsonSoon();
+  return { rooms: 1, journal: before - jsonData.journal.length, seats: 1, stats: 1 };
+}
+
+/** 只删纪念册（保留小屋本身）。 */
+export function clearJournal(code) {
+  ensure();
+  if (backendKind === "sqlite") {
+    return sqlite.prepare("DELETE FROM journal WHERE code=?").run(code).changes;
+  }
+  const before = jsonData.journal.length;
+  jsonData.journal = jsonData.journal.filter((j) => j.code !== code);
+  writeJsonSoon();
+  return before - jsonData.journal.length;
+}

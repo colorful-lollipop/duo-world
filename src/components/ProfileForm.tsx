@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AvatarId, Mood, Profile } from "../types";
 import { AVATARS, COLORS, MOODS } from "../lib/storage";
 import { Critter, AVATAR_NAMES, MOOD_NAMES } from "./Critter";
+import { hasConsented, recordConsent } from "../lib/consent";
 
 export function ProfileForm({
   initial,
@@ -23,6 +24,12 @@ export function ProfileForm({
   const [color, setColor] = useState(initial?.color || COLORS[0]);
   const [mood, setMood] = useState<Mood>(initial?.mood || "joy");
   const [error, setError] = useState("");
+  const [agree, setAgree] = useState(false);
+  const [needConsent, setNeedConsent] = useState(false);
+
+  useEffect(() => {
+    setNeedConsent(!hasConsented());
+  }, []);
 
   const profile: Profile = { nickname: nickname.trim() || "你", avatar, color, mood };
 
@@ -40,6 +47,14 @@ export function ProfileForm({
         if (!name) {
           setError("先写一个昵称吧，让 TA 知道是你");
           return;
+        }
+        if (needConsent && !agree) {
+          setError("先勾选下面的同意项，我们才能开始");
+          return;
+        }
+        if (needConsent) {
+          recordConsent();
+          setNeedConsent(false);
         }
         setError("");
         onSubmit({ nickname: name.slice(0, 12), avatar, color, mood });
@@ -125,12 +140,25 @@ export function ProfileForm({
         </div>
       </div>
 
+      {needConsent && (
+        <label className="consent-row">
+          <input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); setError(""); }} />
+          <span>
+            我已阅读并同意
+            <a href="/terms" target="_blank" rel="noreferrer">《用户协议》</a>
+            和
+            <a href="/privacy" target="_blank" rel="noreferrer">《隐私政策》</a>
+            ，知道数据保存在这间小屋自己的服务器上，随时可以导出或删除。
+          </span>
+        </label>
+      )}
+
       {error && (
         <p className="form-error" role="alert">
           {error}
         </p>
       )}
-      <button className="primary wide" disabled={busy || !nickname.trim()}>
+      <button className="primary wide" disabled={busy || !nickname.trim() || (needConsent && !agree)}>
         {busy ? "正在进入小屋…" : submitLabel}
       </button>
     </form>

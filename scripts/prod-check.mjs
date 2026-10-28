@@ -50,6 +50,13 @@ try {
   await A.getByRole("button", { name: "创建我们的小屋" }).click();
   await A.waitForSelector(".modal .profile-form");
   await A.getByLabel("昵称").fill("巡检A");
+  const consent = A.locator(".consent-row input");
+  if (await consent.count()) {
+    await consent.check();
+    console.log("consent checkbox present");
+  } else {
+    problems.push("首次进入没有看到协议同意勾选");
+  }
   await A.locator(".modal .profile-form .primary").click();
   await A.waitForURL(/\/r\/[A-Z0-9]+/, { timeout: 20000 });
   await A.waitForSelector(".pair-banner");
@@ -62,6 +69,8 @@ try {
   await B.goto(`${BASE}/r/${code}`, { waitUntil: "networkidle" });
   await B.waitForSelector(".join-host");
   await B.getByLabel("昵称").fill("巡检B");
+  const consentB = B.locator(".consent-row input");
+  if (await consentB.count()) await consentB.check();
   await B.getByRole("button", { name: "加入 TA 的小屋" }).click();
   await B.waitForSelector(".pair-banner");
   await sleep(600);

@@ -33,6 +33,8 @@
 
 ![档案与心情](docs/screenshot-profile.png)
 
+![我的数据](docs/screenshot-mydata.png)
+
 ![大厅](docs/screenshot-lobby.png)
 
 ## 一个单屏、按需加载的游戏小屋
@@ -118,7 +120,7 @@ docker compose up -d --build
 把 `server/rooms.mjs` 的房间存储换成 Redis / Postgres 共享即可。
 
 当前 `love.zulogic.cn` 的实际部署（systemd + OpenResty + 通配符证书）见
-[docs/DEPLOY.md](docs/DEPLOY.md)。
+[docs/DEPLOY.md](docs/DEPLOY.md)；备份与恢复演练手册见 [docs/BACKUP.md](docs/BACKUP.md)。
 
 ## 项目结构
 
@@ -245,9 +247,11 @@ npm run build       # 类型检查 + 游戏结构校验 + 生产构建
 npm run start       # 运行生产构建
 npm run serve       # build + start
 npm run test        # Vitest 单元测试（规则 / 持久化 / 房间）
-npm run smoke       # 双客户端跑完所有游戏（含断线重连、历史战绩）
+npm run smoke       # 双客户端跑完所有游戏（含断线重连、历史战绩、数据导出与注销）
 npm run check:games # 只做游戏三件套校验
 npm run new:game    # 新游戏脚手架
+npm run backup      # 数据备份（SQLite 先 checkpoint 再快照到 data/backups/）
+npm run assets      # 重新生成 PWA 图标 / OG 分享图（需要本机 Chrome）
 ```
 
 `scripts/visual.mjs` 是可选的界面截图脚本（本机安装 Chrome + `playwright-core`）：
@@ -270,13 +274,25 @@ node scripts/visual.mjs        # Chrome 不在默认路径时设置 CHROME_PATH
   纪念册与战绩在结算瞬间就写库，所以小屋过期也能查。
 - **纪念册**：每局结束服务端调用 `summary()`，写入 `room.journal` 与 `journal` 表；
   `GET /api/rooms/:code/history` 用本人 token 读取，别人的 token 一律 403。
+- **数据可携带**：`GET /api/rooms/:code/export` 导出整间小屋（纪念册 + 战绩 + 座位昵称）为 JSON，
+  `DELETE /api/rooms/:code` 立即删除该小屋的全部数据；首页「我的数据」是这两个接口的界面。
+  首次创建/加入前需要勾选《用户协议》和《隐私政策》，同意版本记在本地。
+
+## 隐私与数据
+
+- 不需要账号：只有昵称、小动物、心情、围巾颜色，加上你玩的每一局记录。
+- 没有第三方统计、广告或社交登录 SDK；不收集姓名、手机号、邮箱、位置。
+- 数据只存在部署方自己的服务器；房间 12 小时无活动回收，纪念册与战绩保留到你主动删除。
+- 随时自助导出 JSON 或一键删除整间小屋的数据，文档见
+  [用户协议](/terms)、[隐私政策](/privacy)（源码在 `src/lib/legal.ts`）。
 
 ## 已知限制 / Roadmap
 
 - 单实例：房间仍在进程内存里（SQLite 只是落盘恢复），横向扩展需要共享状态。
 - 还没有文字聊天和语音，只有表情反应。
 - 你画我猜暂未保存画作原图，可扩展为画廊 / 笔迹回放。
-- 历史战绩目前按设备 token 认人，换设备/清缓存后需要重新拉取。
+- 历史战绩目前按设备 token 认人，换设备/清缓存后需要重新拉取（没有账号体系）。
+- 备份文件与应用数据库同机存放，需要异地冗余得自己同步出去（见 [docs/BACKUP.md](docs/BACKUP.md)）。
 - 可以继续加：合照拼图、节奏同步、飞行棋、谁是卧底、旅行地图……
 - 音效由 WebAudio 实时合成，无额外音频资源。
 

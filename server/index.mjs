@@ -19,6 +19,7 @@ import {
   createRoom,
   detachSocket,
   exitGame,
+  exportRoom,
   findSeatByToken,
   flushPersistence,
   getRoom,
@@ -26,6 +27,7 @@ import {
   historyFor,
   joinRoom,
   publicInfo,
+  purgeRoom,
   rehydrate,
   roomCount,
   sanitizeProfile,
@@ -212,6 +214,33 @@ app.get("/api/rooms/:code/history", infoLimiter, (req, res, next) => {
     const token = header.replace(/^Bearer\s+/i, "").trim();
     if (!token) throw new RoomError("NEED_TOKEN", "需要先认领你自己的座位", 401);
     res.json(historyFor(req.params.code, token));
+  } catch (err) {
+    next(err);
+  }
+});
+
+function bearerToken(req) {
+  const header = String(req.headers.authorization || "");
+  const token = header.replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new RoomError("NEED_TOKEN", "需要先认领你自己的座位", 401);
+  return token;
+}
+
+// 数据导出：整间小屋的纪念册 + 战绩 + 座位昵称
+app.get("/api/rooms/:code/export", infoLimiter, (req, res, next) => {
+  try {
+    res.json(exportRoom(req.params.code, bearerToken(req)));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 注销 / 删除数据：只删这一间小屋（房间 + 纪念册 + 战绩 + 座位）
+app.delete("/api/rooms/:code", infoLimiter, (req, res, next) => {
+  try {
+    const result = purgeRoom(req.params.code, bearerToken(req));
+    log("info", "room_purged", { roomCode: result.code, removed: result.removed });
+    res.json({ ok: true, ...result });
   } catch (err) {
     next(err);
   }

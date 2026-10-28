@@ -440,6 +440,22 @@ try {
   assert(badHist.status === 403, "history needs own token");
   console.log("done: history api + token guard");
 
+  // 数据导出与注销：export 200、错 token 403；delete 后小屋没了、历史也查不到
+  const exp = await fetch(`${BASE}/api/rooms/${ticketA.code}/export`, {
+    headers: { Authorization: "Bearer " + ticketA.token },
+  });
+  const expData = await exp.json();
+  assert(exp.status === 200, "export status");
+  assert(expData.code === ticketA.code, "export code");
+  assert(expData.entries.length >= 5, "export entries");
+  assert(Array.isArray(expData.seats) && expData.seats.some((s) => s.nickname === "A"), "export seats");
+  assert(expData.stats.wins && typeof expData.stats.wins === "object", "export stats");
+  const badExp = await fetch(`${BASE}/api/rooms/${ticketA.code}/export`, {
+    headers: { Authorization: "Bearer nope" },
+  });
+  assert(badExp.status === 403, "export needs own token");
+  console.log("done: export api + token guard");
+
   // 错误的 token 会被拒绝
   const badCode = await new Promise((resolve) => {
     const bad = new WebSocket(`ws://127.0.0.1:${PORT}/ws?code=${ticketA.code}`);
@@ -449,6 +465,22 @@ try {
   });
   assert(badCode === 4001, "bad token rejected");
   console.log("done: bad token rejected");
+
+  // 注销：删掉这间小屋后，历史/导出/WS 都查不到（放在最后，避免影响前面的断言）
+  const del = await fetch(`${BASE}/api/rooms/${ticketA.code}`, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + ticketA.token },
+  });
+  const delData = await del.json();
+  assert(del.status === 200 && delData.ok === true, "delete status");
+  assert(delData.removed && delData.removed.rooms >= 1, "delete removed rows");
+  const goneHist = await fetch(`${BASE}/api/rooms/${ticketA.code}/history`, {
+    headers: { Authorization: "Bearer " + ticketA.token },
+  });
+  assert(goneHist.status === 403, "history gone after purge");
+  const goneInfo = await fetch(`${BASE}/api/rooms/${ticketA.code}`);
+  assert(goneInfo.status === 404, "room gone after purge");
+  console.log("done: purge room + guards");
 
   A2.ws.close();
   B.ws.close();

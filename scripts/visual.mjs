@@ -21,6 +21,12 @@ const dims = async (page, label) => {
   console.log(`DIMS ${label}: inner=${d.ih} doc=${d.dh} body=${d.bh}`);
 };
 
+// 首次进入要先勾选《用户协议》《隐私政策》，否则提交按钮是禁用的
+const agree = async (page) => {
+  const box = page.locator(".consent-row input");
+  if (await box.count()) await box.check();
+};
+
 const server = spawn(process.execPath, ["server/index.mjs"], {
   env: { ...process.env, PORT: String(PORT), DATA_DIR },
   stdio: ["ignore", "pipe", "pipe"],
@@ -59,8 +65,17 @@ try {
   await home.waitForSelector(".modal .profile-form");
   await sleep(400);
   await home.screenshot({ path: `${shots}/home-create-modal.png`, fullPage: true });
-  await desktop.close();
 
+  // 用户协议 / 隐私政策（页内滚动，不出现页面级滚动条）
+  await home.goto(`${BASE}/terms`, { waitUntil: "networkidle" });
+  await sleep(400);
+  await dims(home, "terms-desktop");
+  await home.screenshot({ path: `${shots}/terms.png`, fullPage: true });
+  await home.goto(`${BASE}/privacy`, { waitUntil: "networkidle" });
+  await sleep(400);
+  await dims(home, "privacy-desktop");
+  await home.screenshot({ path: `${shots}/privacy.png`, fullPage: true });
+  await desktop.close();
   // 首页手机
   const mobileHomeCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const mhome = await mobileHomeCtx.newPage();
@@ -68,6 +83,10 @@ try {
   await sleep(400);
   await dims(mhome, "home-mobile");
   await mhome.screenshot({ path: `${shots}/home-mobile.png`, fullPage: true });
+  await mhome.goto(`${BASE}/terms`, { waitUntil: "networkidle" });
+  await sleep(400);
+  await dims(mhome, "terms-mobile");
+  await mhome.screenshot({ path: `${shots}/terms-mobile.png`, fullPage: true });
   await mobileHomeCtx.close();
 
   // A 创建房间
@@ -78,6 +97,7 @@ try {
   await A.getByRole("button", { name: "创建我们的小屋" }).click();
   await A.waitForSelector(".modal .profile-form");
   await A.getByLabel("昵称").fill("阿满");
+  await agree(A);
   await A.locator(".modal .profile-form .primary").click();
   await A.waitForURL(/\/r\/[A-Z0-9]+/);
   await A.waitForSelector(".pair-banner");
@@ -98,6 +118,7 @@ try {
   await B.getByRole("button", { name: "小熊" }).click();
   await B.locator(".color-dot").nth(1).click();
   await B.getByLabel("昵称").fill("小树");
+  await agree(B);
   await B.getByRole("button", { name: "加入 TA 的小屋" }).click();
   await B.waitForSelector(".pair-banner");
   await sleep(900);
@@ -326,6 +347,17 @@ try {
   await A.waitForSelector(".journal-view, .journal-empty");
   await sleep(500);
   await A.screenshot({ path: `${shots}/journal.png`, fullPage: true });
+  await A.getByRole("button", { name: "关闭", exact: true }).click();
+  await sleep(200);
+
+  // 我的数据（导出 / 删除）
+  await A.goto(BASE, { waitUntil: "networkidle" });
+  await sleep(400);
+  await A.locator(".home-legal-links .text-button", { hasText: "我的数据" }).click();
+  await A.waitForSelector(".my-data, .journal-empty");
+  await sleep(400);
+  await dims(A, "my-data");
+  await A.screenshot({ path: `${shots}/my-data.png`, fullPage: true });
   await A.getByRole("button", { name: "关闭", exact: true }).click();
   await sleep(200);
 

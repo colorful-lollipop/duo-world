@@ -79,3 +79,24 @@ export function getHistory(code: string, token: string) {
     headers: { Authorization: "Bearer " + token },
   });
 }
+
+export interface ExportResponse extends HistoryResponse {
+  exportedAt: string;
+  seat: number;
+  seats: { seat: number; nickname: string; avatar?: string; mood?: string }[];
+}
+
+/** 导出这间小屋的全部数据（纪念册 + 战绩 + 座位昵称）。 */
+export function exportRoomData(code: string, token: string) {
+  return request<ExportResponse>("rooms/" + encodeURIComponent(code) + "/export", {
+    headers: { Authorization: "Bearer " + token },
+  });
+}
+
+/** 注销这间小屋：房间、纪念册、战绩、座位一起删掉。 */
+export function deleteRoomData(code: string, token: string) {
+  return request<{ ok: boolean; code: string; removed: Record<string, number> }>(
+    "rooms/" + encodeURIComponent(code),
+    { method: "DELETE", headers: { Authorization: "Bearer " + token } },
+  );
+}

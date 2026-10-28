@@ -98,11 +98,35 @@ systemctl restart duo-world
 
 - 数据在 `/opt/duo-world/data/duo.db`（SQLite，WAL 模式）；部署脚本只覆盖 `dist server shared`，**不会动 `data/`**，所以发布、重启都不丢纪念册和战绩。
 - 房间热状态 2 秒防抖落盘、结算瞬间写库；退出前 `flushPersistence()` + `wal_checkpoint`。
-- 建议每天备份一次（纪念册 + 战绩是用户数据）：
+- 清理过期房间时只删 `rooms` 表的行，`journal / room_seats / room_stats` 永久保留（这是「小屋过期了回忆还在」的实现方式）。
+
+### 每日备份
+
+仓库自带备份脚本（先 checkpoint 再拷，避免漏 WAL 里还没落盘的事务）：
 
 ```bash
-ssh guan "tar -czf /opt/backup/duo-$(date +%F).tar.gz -C /opt/duo-world data && ls -lh /opt/backup/ | tail -3"
+ssh guan "cd /opt/duo-world && /opt/node22/bin/node scripts/backup.mjs --verify"
+# 输出备份文件名、字节数、保留策略，以及每张表的行数
+ls -lh /opt/duo-world/data/backups | tail -3
 ```
 
-- 备份保留策略自己定；服务器磁盘 68G / 剩 28G，一条记录几 KB，量级不用担心。
-- 清理过期房间时只删 `rooms` 表的行，`journal / room_seats / room_stats` 永久保留（这是「小屋过期了回忆还在」的实现方式）。
+用 systemd timer 每天跑一次（完整 unit 文件、保留策略、恢复演练步骤见
+[docs/BACKUP.md](BACKUP.md)）：
+
+```ini
+# /etc/systemd/system/duo-world-backup.service
+[Service]
+Type=oneshot
+User=duoworld
+WorkingDirectory=/opt/duo-world
+ExecStart=/opt/node22/bin/node scripts/backup.mjs --verify
+Environment=DATA_DIR=/opt/duo-world/data
+```
+
+```bash
+systemctl daemon-reload && systemctl enable --now duo-world-backup.timer
+systemctl list-timers duo-world-backup.timer
+```
+
+- 备份留在 `data/backups/`（默认最近 14 份），量级很小：一条记录几 KB，服务器磁盘 68G / 剩 28G。
+- 主机故障时没有异地冗余，需要的话把 `data/backups/` 定期同步到别的机器或对象存储。

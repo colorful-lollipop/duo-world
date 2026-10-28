@@ -100,6 +100,62 @@ describe("rooms · 一局最小流程与历史", () => {
   });
 });
 
+describe("rooms · 数据导出与注销", () => {
+  function played() {
+    const { room, token } = rooms.createRoom(P0);
+    const { token: token1 } = rooms.joinRoom(room.code, P1);
+    rooms.selectGame(room, 0, "gomoku");
+    rooms.startGame(room, 0);
+    rooms.handleAction(room, 0, { type: "resign" });
+    return { room, token, token1 };
+  }
+
+  it("exportRoom 带出纪念册、战绩与座位昵称", () => {
+    const { room, token } = played();
+    const data = rooms.exportRoom(room.code, token);
+    expect(data.code).toBe(room.code);
+    expect(data.seat).toBe(0);
+    expect(data.alive).toBe(true);
+    expect(data.entries.length).toBeGreaterThanOrEqual(1);
+    expect(data.entries[0].gameId).toBe("gomoku");
+    expect(data.stats.wins.gomoku).toEqual([0, 1]);
+    expect(data.seats.map((s) => s.nickname).sort()).toEqual(["小明", "小红"]);
+    expect(typeof data.exportedAt).toBe("string");
+    expect(Number.isNaN(Date.parse(data.exportedAt))).toBe(false);
+  });
+
+  it("exportRoom 拒绝陌生 token", () => {
+    const { room } = played();
+    expect(() => rooms.exportRoom(room.code, "intruder")).toThrowError(/两个人/);
+    try {
+      rooms.exportRoom(room.code, "");
+    } catch (err) {
+      expect(err.status).toBe(403);
+    }
+  });
+
+  it("purgeRoom 清掉内存与落盘数据，之后历史也查不到", () => {
+    const { room, token } = played();
+    const code = room.code;
+    expect(rooms.getRoom(code)).toBeTruthy();
+
+    const res = rooms.purgeRoom(code, token);
+    expect(res.code).toBe(code);
+    expect(rooms.getRoom(code)).toBeFalsy();
+    expect(store.listJournal(code, 50)).toHaveLength(0);
+    expect(store.findSeatByToken(code, token)).toBe(-1);
+    expect(store.getStats(code)).toBeNull();
+    expect(() => rooms.historyFor(code, token)).toThrowError(/两个人/);
+  });
+
+  it("purgeRoom 拒绝陌生 token，且不会误删", () => {
+    const { room, token } = played();
+    expect(() => rooms.purgeRoom(room.code, "intruder")).toThrowError(/两个人/);
+    expect(rooms.getRoom(room.code)).toBeTruthy();
+    expect(rooms.purgeRoom(room.code, token).removed.rooms).toBeGreaterThanOrEqual(1);
+  });
+});
+
 describe("rooms · 持久化与恢复", () => {
   it("flushPersistence 后 rehydrate 不抛错并返回数字，historyFor 仍可用", () => {
     const { room, token } = rooms.createRoom(P0);

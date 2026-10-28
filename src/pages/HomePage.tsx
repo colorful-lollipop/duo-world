@@ -10,13 +10,14 @@ import { getLastRoom, knownRoomsWithToken, loadProfile, saveSession } from "../l
 import { navigate } from "../lib/router";
 import { sfx } from "../lib/sound";
 import { JournalView } from "../components/JournalView";
+import { MyData } from "../components/MyData";
 
-type HomeModal = "create" | "join" | "games" | "how" | "memory" | null;
+type HomeModal = "create" | "join" | "games" | "how" | "memory" | "data" | null;
 
 export function HomePage() {
   const saved = useMemo(() => loadProfile(), []);
   const last = useMemo(() => getLastRoom(), []);
-  const known = useMemo(() => knownRoomsWithToken(), []);
+  const [known, setKnown] = useState(() => knownRoomsWithToken());
   const [modal, setModal] = useState<HomeModal>(null);
   const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -116,6 +117,12 @@ export function HomePage() {
                 <Icon name="book" size={16} /> 我们的回忆 <b>{known.length}</b> 间小屋 →
               </button>
             )}
+
+            {known.length > 0 && (
+              <button className="last-room-link memory-link" onClick={() => setModal("data")}>
+                <Icon name="lock" size={16} /> 我的数据 · 导出 / 删除
+              </button>
+            )}
           </div>
 
           <div className="title-art" aria-hidden="true">
@@ -161,6 +168,15 @@ export function HomePage() {
           <Icon name="heart" size={13} filled /> 二人世界 · 为两个人做的小游戏
         </span>
         <span className="home-foot-note">房间闲置 12 小时清理 · 数据只存在你的服务器</span>
+        <nav className="home-legal-links">
+          <a href="/terms">用户协议</a>
+          <span aria-hidden="true">·</span>
+          <a href="/privacy">隐私政策</a>
+          <span aria-hidden="true">·</span>
+          <button className="text-button" onClick={() => setModal("data")}>
+            我的数据
+          </button>
+        </nav>
       </footer>
 
       {modal === "create" && (
@@ -299,6 +315,16 @@ export function HomePage() {
             这些记录存在你们自己的服务器上，就算小屋过期了也还在。
           </p>
           <JournalView codes={known.map((k) => k.code)} />
+        </Modal>
+      )}
+
+      {modal === "data" && (
+        <Modal title="我的数据" onClose={() => setModal(null)} wide>
+          <MyData
+            onChanged={() => {
+              setKnown(knownRoomsWithToken());
+            }}
+          />
         </Modal>
       )}
     </div>

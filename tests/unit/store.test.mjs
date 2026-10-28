@@ -107,6 +107,34 @@ describe("store · 战绩", () => {
   });
 });
 
+describe("store · 注销 purgeRoom / clearJournal", () => {
+  it("purgeRoom 删掉房间、纪念册、座位、战绩", () => {
+    store.saveRoom(sampleRoom("PURGE1"), Date.now() + 60000);
+    store.saveSeat("PURGE1", 0, "tok-p", "小明");
+    store.saveStats("PURGE1", { wins: { gomoku: [1, 0] } });
+    store.appendJournal({ id: "p-1", code: "PURGE1", gameId: "gomoku", title: "P", detail: "d", data: null, at: 1 });
+
+    const counts = store.purgeRoom("PURGE1");
+    expect(counts.rooms).toBeGreaterThanOrEqual(1);
+    expect(counts.journal).toBeGreaterThanOrEqual(1);
+    expect(counts.seats).toBeGreaterThanOrEqual(1);
+    expect(counts.stats).toBeGreaterThanOrEqual(1);
+    expect(store.loadRooms().some((r) => r.code === "PURGE1")).toBe(false);
+    expect(store.listJournal("PURGE1", 50)).toHaveLength(0);
+    expect(store.findSeatByToken("PURGE1", "tok-p")).toBe(-1);
+    expect(store.getStats("PURGE1")).toBeNull();
+  });
+
+  it("clearJournal 只删纪念册，不影响座位", () => {
+    store.saveSeat("CLRJ1", 0, "tok-c", "小明");
+    store.appendJournal({ id: "c-1", code: "CLRJ1", gameId: "gomoku", title: "C", detail: "d", data: null, at: 1 });
+    const n = store.clearJournal("CLRJ1");
+    expect(n).toBeGreaterThanOrEqual(1);
+    expect(store.listJournal("CLRJ1", 50)).toHaveLength(0);
+    expect(store.findSeatByToken("CLRJ1", "tok-c")).toBe(0);
+  });
+});
+
 describe("store · 收尾", () => {
   it("flushStore 不抛错，且后端类型合法", () => {
     expect(() => store.flushStore()).not.toThrow();

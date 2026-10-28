@@ -10,6 +10,7 @@ import {
   getStats,
   listJournal,
   loadRooms,
+  purgeRoom as storePurgeRoom,
   saveRoom,
   saveSeat,
   saveStats,
@@ -471,6 +472,63 @@ export function flushPersistence() {
   try {
     flushStore();
   } catch {}
+}
+
+/** 导出某间小屋的全部数据（用户自助导出用，含纪念册、战绩与座位昵称）。 */
+export function exportRoom(code, token) {
+  const c = String(code || "").toUpperCase();
+  const room = rooms.get(c);
+  let seat = room ? findSeatByToken(room, token) : -1;
+  if (seat < 0) {
+    try {
+      seat = storeFindSeat(c, token);
+    } catch {
+      seat = -1;
+    }
+  }
+  if (seat < 0) throw new RoomError("FORBIDDEN", "只有小屋里的两个人能导出这些数据", 403);
+  const hist = historyFor(c, token);
+  const seats = [];
+  if (room) {
+    room.seats.forEach((s, i) => {
+      if (s.profile) seats.push({ seat: i, nickname: s.profile.nickname, avatar: s.profile.avatar, mood: s.profile.mood });
+    });
+  }
+  return {
+    exportedAt: new Date().toISOString(),
+    code: c,
+    seat,
+    seats,
+    alive: hist.alive,
+    stats: hist.stats,
+    entries: hist.entries,
+  };
+}
+
+/** 注销：删掉这间小屋的房间、纪念册、战绩、座位。只允许小屋里的人调用。 */
+export function purgeRoom(code, token) {
+  const c = String(code || "").toUpperCase();
+  const room = rooms.get(c);
+  let seat = room ? findSeatByToken(room, token) : -1;
+  if (seat < 0) {
+    try {
+      seat = storeFindSeat(c, token);
+    } catch {
+      seat = -1;
+    }
+  }
+  if (seat < 0) throw new RoomError("FORBIDDEN", "只有小屋里的两个人能删除这间小屋", 403);
+  const timer = saveTimers.get(c);
+  if (timer) {
+    clearTimeout(timer);
+    saveTimers.delete(c);
+  }
+  rooms.delete(c);
+  let counts = { rooms: 0, journal: 0, seats: 0, stats: 0 };
+  try {
+    counts = storePurgeRoom(c);
+  } catch {}
+  return { code: c, removed: counts };
 }
 
 export function inkStats(room) {

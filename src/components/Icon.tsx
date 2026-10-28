@@ -25,7 +25,8 @@ type IconName =
   | "lock"
   | "pencil"
   | "clock"
-  | "hand";
+  | "hand"
+  | "download";
 
 const S = 24;
 
@@ -212,6 +213,14 @@ export function Icon({
         <svg {...common}>
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5.5l3.5 2" />
+        </svg>
+      );
+    case "download":
+      return (
+        <svg {...common}>
+          <path d="M12 4v11" />
+          <path d="M7.5 10.5 12 15l4.5-4.5" />
+          <path d="M5 19h14" />
         </svg>
       );
     case "hand":

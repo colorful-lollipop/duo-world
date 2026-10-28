@@ -14,6 +14,7 @@ npm run smoke      # 端到端：起测试服务器(18790) → 双客户端跑�
 npm run test       # Vitest 单测（tests/unit：各游戏规则 + store + rooms）
 npm run check:games # 只做游戏三件套结构校验
 npm run assets     # 重新生成 PWA 图标 / OG 图（scripts/gen-assets.mjs，需要本机 Chrome）
+npm run backup     # 数据备份（scripts/backup.mjs，先 checkpoint 再快照到 data/backups/）
 npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手架
 ```
 
@@ -50,6 +51,8 @@ npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手
 - **动作幂等**：客户端 `send({type:"action", ...})` 会自动加 `cid` 并入队；服务端用 `room.seenCids`（最近 400 条）去重，回 `{type:"ack", cid}`；客户端收到 ack 出队，重连（welcome）后补发未确认的动作。断网期间动作不会丢，客户端据此实现「离线排队」。
 - **持久化**：`server/store.mjs` 是唯一的存储层（sqlite 优先，Node 20 无 `node:sqlite` 时自动回退 `data/store.json`）。`rooms.mjs` 里 `touch()` → `markDirty()` 2s 防抖落盘；`finalizeIfOver` 同步写 journal + stats；`cleanupRooms` 只删房间行，**保留** journal / seats / stats；启动 `rehydrate()` 捞回未过期房间（`ws=null`）；退出走 `flushPersistence()` + `closeStore()`。新增持久化需求请走 store 的导出，别在 rooms.mjs 里直接写库。
 - **历史战绩**：`GET /api/rooms/:code/history` 需要 `Authorization: Bearer <token>`（无 token 401，别人的 token 403）；房间过期也能查，靠 `room_seats` 里的 token 哈希。前端 `src/components/JournalView.tsx` 是唯一的纪念册视图（房间大厅 + 首页「我们的回忆」共用），`live` 参数用于合并当前房间内存里的条目。
+- **法务与数据权**：文案在 `src/lib/legal.ts`（`LEGAL_TERMS` / `LEGAL_PRIVACY`，`CONSENT_VERSION` 有实质变更时改），页面是 `/terms`、`/privacy`；首次建/加入小屋要勾选同意（`src/lib/consent.ts` 记本地版本）。数据权接口：`GET /api/rooms/:code/export`（导出 JSON）、`DELETE /api/rooms/:code`（整间小屋的 rooms/journal/seats/stats 一起删，走 `store.purgeRoom`）；首页「我的数据」弹窗（`src/components/MyData.tsx`）包了这两个。加新的可删除数据源时，记得同步 `store.purgeRoom`。
+- **备份**：`scripts/backup.mjs`（`npm run backup`）先 `wal_checkpoint(TRUNCATE)` 再快照到 `data/backups/`，保留 `BACKUP_KEEP` 份，`--verify` 数行数；运维 runbook 在 `docs/BACKUP.md`。
 - 生产安全：`NODE_ENV=production` 时启用 CSP/HSTS；HTTP 层有 create/join/info 限流；`/metrics` 暴露 Prometheus 指标；`/api/health` 返回在线房间数。所有 API 请求日志带 `x-request-id`。
 - 角色外观：`Profile` 含 `mood`（normal/joy/wow/sad/sleep）；小动物共 13 种，`src/lib/storage.ts` 的 `AVATARS`、`server/rooms.mjs` 的 `AVATARS/MOODS`、`src/types.ts`、`src/components/Critter.tsx` 四处要同步，服务端会校验 mood。
 - 画板特殊：坐标统一 1000×1000，走独立 `ink` 通道；普通 `state` 广播会剔除 `draw-guess` 的 `strokes`（重连/开局用 `ink-sync` 全量下发）。改画板相关逻辑时注意别把整张画塞进每次快照。
@@ -79,7 +82,7 @@ npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手
 ## 仓库注意事项
 
 - `dist / node_modules / _shots / _ref / data` 都在 `.gitignore`，不要提交（`data/` 是运行时的 SQLite 与回退 JSON，属于用户数据）；`docs/` 里的截图是提交的。CI 在 main push / PR 上跑 Node 20 和 22 的 build + test + smoke。
-- 版本走 `npm version X.Y.Z --no-git-tag-version` + `CHANGELOG.md` 更新 + `git tag vX.Y.Z` + `gh release create`，当前版本 1.2.0。
+- 版本走 `npm version X.Y.Z --no-git-tag-version` + `CHANGELOG.md` 更新 + `git tag vX.Y.Z` + `gh release create`，当前版本 1.3.0。
 - 生产环境：`https://love.zulogic.cn`（服务器 `guan`，systemd 服务 `duo-world`，Node 在 `/opt/node22`，应用 `/opt/duo-world`，OpenResty vhost 反代到 127.0.0.1:8790，复用 `*.zulogic.cn` 通配符证书，`PUBLIC_URL=https://love.zulogic.cn`）。部署步骤看 `docs/DEPLOY.md`。
 - 文件含中文且是 UTF-8：**不要用 PowerShell 的 `Get-Content/Set-Content` 来回读写**（会破坏编码），用文件编辑工具。
 - 详细玩法、部署、扩展指南看 `README.md`；商业化路线图在 `docs/ROADMAP.md`；贡献流程看 `CONTRIBUTING.md`。
