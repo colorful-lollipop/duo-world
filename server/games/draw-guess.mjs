@@ -168,6 +168,22 @@ export default {
     return "这个操作暂时不可以";
   },
 
+  // 按座位藏信息：猜的人永远拿不到候选词文本，答案要等揭晓。
+  // seat === data.drawer 时返回完整数据（顺带补上 answerLength）。
+  view(data, seat) {
+    const answer = typeof data.answer === "string" ? data.answer : "";
+    const answerLength = answer ? Array.from(answer).length : 0;
+    if (seat === data.drawer) return { ...data, answerLength };
+    const hiddenChoices = (data.choices || []).map(() => ({ w: null, lib: "", lvl: 0 }));
+    const showAnswer = data.phase === "reveal" || data.phase === "over";
+    return {
+      ...data,
+      choices: hiddenChoices,
+      answer: showAnswer ? data.answer : null,
+      answerLength,
+    };
+  },
+
   tick(room, now) {
     const d = room.game?.data;
     if (!d) return false;

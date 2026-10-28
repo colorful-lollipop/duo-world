@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import drawGuess from "../../server/games/draw-guess.mjs";
+import { words } from "../../server/games/_draw-guess.words.mjs";
 import { makeRoom, startGame } from "./_room.mjs";
 
 // 固定词条，避免 shuffle 随机导致用例不确定
@@ -153,6 +154,76 @@ describe("你画我猜 · tick 计时", () => {
     expect(drawGuess.tick(room, d.revealAt)).toBe(true);
     expect(d.phase).toBe("choose");
     expect(d.round).toBe(1);
+  });
+});
+
+describe("你画我猜 · 按座位隐藏", () => {
+  it("选词阶段猜的人看不到候选词，也看不到答案", () => {
+    const { d } = newGame();
+    const drawerView = drawGuess.view(d, 0);
+    const guesserView = drawGuess.view(d, 1);
+    expect(drawerView.choices.map((c) => c.w)).toEqual(["火锅", "雨伞", "西瓜"]);
+    expect(guesserView.choices).toHaveLength(3);
+    expect(guesserView.choices.every((c) => c.w === null)).toBe(true);
+    expect(guesserView.choices.every((c) => !c.lib && !c.lvl)).toBe(true);
+    expect(guesserView.answer).toBeNull();
+    expect(guesserView.answerLength).toBe(0);
+  });
+
+  it("作画阶段画手能看到答案，猜的人只拿到字数", () => {
+    const { room, d } = newGame();
+    choose(room, 0, 0, 1000);
+    const drawerView = drawGuess.view(d, 0);
+    const guesserView = drawGuess.view(d, 1);
+    expect(drawerView.answer).toBe("火锅");
+    expect(drawerView.answerLength).toBe(2);
+    expect(guesserView.answer).toBeNull();
+    expect(guesserView.answerLength).toBe(2);
+    expect(guesserView.choices.every((c) => c.w === null)).toBe(true);
+  });
+
+  it("揭晓之后猜的人也能看到答案", () => {
+    const { room, d } = newGame();
+    choose(room, 0, 0, 1000);
+    guess(room, 1, "火锅", 1000);
+    expect(d.phase).toBe("reveal");
+    expect(drawGuess.view(d, 1).answer).toBe("火锅");
+    expect(drawGuess.view(d, 1).answerLength).toBe(2);
+  });
+
+  it("view 只返回浅拷贝，不修改原始数据", () => {
+    const { room, d } = newGame();
+    choose(room, 0, 0, 1000);
+    const before = JSON.stringify(d);
+    drawGuess.view(d, 1);
+    drawGuess.view(d, 0);
+    expect(JSON.stringify(d)).toBe(before);
+    expect(d.answer).toBe("火锅");
+    expect(d.choices[0].w).toBe("火锅");
+  });
+});
+
+describe("你画我猜 · 词库", () => {
+  it("总量够多，lib/lvl 合法且每个 lib+lvl 至少 12 个，词不重复", () => {
+    expect(words.length).toBeGreaterThanOrEqual(160);
+    const ids = new Set();
+    const names = new Set();
+    for (const w of words) {
+      expect(["日常", "恋爱"]).toContain(w.lib);
+      expect([1, 2, 3]).toContain(w.lvl);
+      expect(typeof w.w).toBe("string");
+      expect(w.w.length).toBeGreaterThan(0);
+      ids.add(w.lib + ":" + w.w);
+      names.add(w.w);
+    }
+    expect(ids.size).toBe(words.length); // lib+w 唯一
+    expect(names.size).toBe(words.length); // 词本身也全局唯一
+    for (const lib of ["日常", "恋爱"]) {
+      for (const lvl of [1, 2, 3]) {
+        const count = words.filter((w) => w.lib === lib && w.lvl === lvl).length;
+        expect(count, `${lib} lvl${lvl} 只有 ${count} 个词`).toBeGreaterThanOrEqual(12);
+      }
+    }
   });
 });
 

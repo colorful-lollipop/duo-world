@@ -8,6 +8,8 @@ import { sfx } from "../lib/sound";
 
 const PALETTE = ["#292B3D", "#F05267", "#F5B83D", "#46A77C", "#4099DD", "#9270C4", "#F18B48", "#FFFFFF"];
 const SIZES = [4, 10, 22];
+// 猜的人在选词阶段只看到 3 张占位卡，绝不渲染候选词文本
+const PLACEHOLDER_CHOICES = [0, 1, 2];
 
 interface Stroke {
   id: string;
@@ -199,7 +201,9 @@ export function DrawGuessStage(props: StageProps) {
   const pct = Math.max(0, Math.min(100, (remain / total) * 100));
   const revealed = d.phase === "reveal" && t >= (d.revealAt || 0);
   const drawerProfile = room.seats[d.drawer]?.profile;
-  const letters = d.answer ? `${Array.from(String(d.answer)).length} 个字` : "";
+  // 猜的人拿不到 answer，只能看服务端给的 answerLength
+  const answerLength = Number(d.answerLength) || 0;
+  const letters = answerLength > 0 ? `${answerLength} 个字` : "";
 
   const canDraw = drawer && d.phase === "drawing";
 
@@ -234,22 +238,28 @@ export function DrawGuessStage(props: StageProps) {
             <p className="muted">{formatLeft(remain)} 秒后会自动选一个</p>
           </div>
           <div className="choice-cards">
-            {d.choices.map((c: any, index: number) => (
-              <button
-                key={c.w}
-                className="choice word-choice"
-                disabled={!drawer}
-                onClick={() => {
-                  sfx.tap();
-                  act({ type: "choose", index });
-                }}
-              >
-                <strong>{c.w}</strong>
-                <small>
-                  <span className="stars">{"★".repeat(c.lvl)}</span> {["简单", "中等", "挑战"][c.lvl - 1]} · {c.lib}
-                </small>
-              </button>
-            ))}
+            {drawer
+              ? d.choices.map((c: any, index: number) => (
+                  <button
+                    key={c.w}
+                    className="choice word-choice"
+                    onClick={() => {
+                      sfx.tap();
+                      act({ type: "choose", index });
+                    }}
+                  >
+                    <strong>{c.w}</strong>
+                    <small>
+                      <span className="stars">{"★".repeat(c.lvl)}</span> {["简单", "中等", "挑战"][c.lvl - 1]} · {c.lib}
+                    </small>
+                  </button>
+                ))
+              : PLACEHOLDER_CHOICES.map((i) => (
+                  <div key={"hidden-" + i} className="choice word-choice word-choice-hidden" aria-hidden="true">
+                    <strong>？</strong>
+                    <small>等 TA 选好</small>
+                  </div>
+                ))}
           </div>
           {!drawer && <p className="stage-hint">耐心等一下，TA 马上就开始画了。</p>}
         </div>
