@@ -1,6 +1,6 @@
 {
   "name": "duo-world",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": false,
   "type": "module",
   "description": "二人世界 · 情侣双人在线小游戏合集",
@@ -38,6 +38,8 @@
   },
   "dependencies": {
     "express": "^4.21.2",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -1,9 +1,25 @@
 import crypto from "node:crypto";
 import { GAME_MAP, allDefaultSettings, sanitizeSettings } from "./meta.mjs";
 import { games } from "./games/index.mjs";
+import { inc, incTicks } from "./observability.mjs";
 
-export const AVATARS = ["bunny", "bear", "cat", "dog", "fox", "penguin"];
+export const AVATARS = [
+  "bunny",
+  "bear",
+  "cat",
+  "dog",
+  "fox",
+  "penguin",
+  "pig",
+  "mouse",
+  "elephant",
+  "hippo",
+  "boar",
+  "donkey",
+  "cow",
+];
 export const COLORS = ["#FF6B6B", "#4D9DFF", "#2EC4A6", "#FFC93C", "#9B7BFF", "#FF9A76"];
+export const MOODS = ["normal", "joy", "wow", "sad", "sleep"];
 
 const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const ROOM_TTL = 12 * 60 * 60 * 1000;
@@ -36,7 +52,8 @@ export function sanitizeProfile(input) {
   if (!nickname) throw new RoomError("BAD_PROFILE", "昵称不能空着哦", 400);
   const avatar = AVATARS.includes(input.avatar) ? input.avatar : AVATARS[0];
   const color = COLORS.includes(input.color) ? input.color : COLORS[0];
-  return { nickname, avatar, color };
+  const mood = MOODS.includes(input.mood) ? input.mood : "joy";
+  return { nickname, avatar, color, mood };
 }
 
 function makeSeat(profile, token) {
@@ -71,6 +88,7 @@ export function createRoom(profile) {
     stats: { wins: {} },
   };
   rooms.set(code, room);
+  inc("rooms_created_total");
   return { room, seat: 0, token };
 }
 
@@ -105,6 +123,7 @@ export function publicInfo(code) {
       nickname: s.profile?.nickname || null,
       avatar: s.profile?.avatar || null,
       color: s.profile?.color || null,
+      mood: s.profile?.mood || null,
     })),
   };
 }
@@ -219,6 +238,7 @@ export function startGame(room, seat) {
   room.settings[id] = settings;
   const data = mod.create(room);
   room.game = { id, run: crypto.randomUUID(), startedAt: Date.now(), data, journaled: false };
+  inc("games_started_total");
   touch(room);
 }
 
@@ -244,6 +264,7 @@ export function finalizeIfOver(room) {
     at: room.game.endedAt,
   });
   if (room.journal.length > 50) room.journal.shift();
+  inc("journal_entries_total");
   touch(room);
   return true;
 }
@@ -273,10 +294,15 @@ export function tickRooms() {
     if (did) {
       finalizeIfOver(room);
       touch(room);
+      incTicks();
       changed.push(room);
     }
   }
   return changed;
+}
+
+export function roomCount() {
+  return rooms.size;
 }
 
 export function cleanupRooms() {

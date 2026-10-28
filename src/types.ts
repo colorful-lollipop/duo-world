@@ -1,11 +1,27 @@
 import rawGames from "../shared/games.json";
 
-export type AvatarId = "bunny" | "bear" | "cat" | "dog" | "fox" | "penguin";
+export type AvatarId =
+  | "bunny"
+  | "bear"
+  | "cat"
+  | "dog"
+  | "fox"
+  | "penguin"
+  | "pig"
+  | "mouse"
+  | "elephant"
+  | "hippo"
+  | "boar"
+  | "donkey"
+  | "cow";
+
+export type Mood = "normal" | "joy" | "wow" | "sad" | "sleep";
 
 export interface Profile {
   nickname: string;
   avatar: AvatarId;
   color: string;
+  mood: Mood;
 }
 
 export interface SeatInfo {

@@ -7,6 +7,8 @@
 给两个人做的在线小游戏小屋：创建房间 → 把链接发给 TA → 两台设备同时上线就能玩。
 不用下载 App，不用注册账号；断线自动重连，每一局结束都会记进「我们的纪念册」。
 
+**线上地址：https://love.zulogic.cn**
+
 ![首页](docs/screenshot-home.png)
 
 ## 现在能玩什么
@@ -24,6 +26,8 @@
 
 ![跳棋](docs/screenshot-checkers.png)
 
+![档案与心情](docs/screenshot-profile.png)
+
 ![大厅](docs/screenshot-lobby.png)
 
 ## 一个单屏、按需加载的游戏小屋
@@ -36,6 +40,8 @@
 - **服务端权威**：规则、计时、计分全部在服务端；客户端只发动作、只渲染快照。
   断线重连可以恢复整局进度。
 - **两人一屋**：每个房间只有两个座位，靠 token 识别身份。
+- **13 种小动物 + 5 种心情**：可以给自己捏一个当天的小样子，心情会同步给 TA。
+- **生产安全**：WS 首帧认证（URL 不出现 token）、CSP/HSTS、HTTP 限流、结构化日志与 `/metrics`。
 
 ## 快速开始
 
@@ -101,6 +107,9 @@ docker compose up -d --build
 
 房间状态在 Node 进程内存里，请保持**单实例**运行；需要横向扩展时，
 把 `server/rooms.mjs` 的房间存储换成 Redis / Postgres 共享即可。
+
+当前 `love.zulogic.cn` 的实际部署（systemd + OpenResty + 通配符证书）见
+[docs/DEPLOY.md](docs/DEPLOY.md)。
 
 ## 项目结构
 

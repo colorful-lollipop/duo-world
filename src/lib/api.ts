@@ -52,7 +52,7 @@ export interface PublicRoomInfo {
   code: string;
   full: boolean;
   gameId: string;
-  seats: { nickname: string | null; avatar: string | null; color: string | null }[];
+  seats: { nickname: string | null; avatar: string | null; color: string | null; mood: string | null }[];
 }
 
 export function getRoomInfo(code: string) {

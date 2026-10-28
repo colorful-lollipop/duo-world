@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GAMES, GAME_MAP, type AvatarId, type Profile, type RoomState } from "../types";
+import { GAMES, GAME_MAP, type AvatarId, type Mood, type Profile, type RoomState } from "../types";
 import { useRoom } from "../lib/useRoom";
 import { ApiError, getRoomInfo, joinRoom, type PublicRoomInfo } from "../lib/api";
 import {
@@ -77,9 +77,10 @@ function JoinScreen({ code, onJoined }: { code: string; onJoined: (token: string
   const host = info?.seats?.[0];
   const hostAvatar = (host?.avatar || "bunny") as AvatarId;
   const hostColor = host?.color || COLORS[0];
+  const hostMood = (host?.mood || "joy") as Mood;
   const suggestedAvatar = AVATARS[(AVATARS.indexOf(hostAvatar) + 1) % AVATARS.length];
   const suggestedColor = COLORS[(Math.max(0, COLORS.indexOf(hostColor)) + 1) % COLORS.length];
-  const initial = saved || { nickname: "", avatar: suggestedAvatar, color: suggestedColor };
+  const initial = saved || { nickname: "", avatar: suggestedAvatar, color: suggestedColor, mood: "joy" as Mood };
 
   async function join(profile: Profile) {
     if (busy) return;
@@ -143,7 +144,7 @@ function JoinScreen({ code, onJoined }: { code: string; onJoined: (token: string
           <div className="join-card">
             <div className="join-host">
               {host?.avatar ? (
-                <Critter avatar={host.avatar as any} color={host.color || "#FF6B6B"} size={88} mood="joy" className="bob" />
+                <Critter avatar={host.avatar as any} color={host.color || "#FF6B6B"} size={88} mood={hostMood} className="bob" />
               ) : (
                 <EmptySeat size={88} />
               )}
@@ -326,7 +327,7 @@ function LiveRoom({ code, token, onInvalid }: { code: string; token: string; onI
             <Icon name="share" size={20} />
           </button>
           <button className="self-button" onClick={() => setProfileOpen(true)} aria-label="修改我的样子">
-            <Critter avatar={myProfile?.avatar} color={myProfile?.color} size={38} shadow={false} />
+            <Critter avatar={myProfile?.avatar} color={myProfile?.color} size={38} mood={myProfile?.mood} shadow={false} />
           </button>
           {playing && (
             <button className="secondary small lobby-exit" onClick={() => setExitConfirm(true)}>
@@ -532,7 +533,7 @@ function Lobby({
             const s = state.seats[n];
             return (
               <div className={"seat-status " + (s.connected ? "on" : "")} key={n}>
-                <Critter avatar={s.profile?.avatar} color={s.profile?.color} size={34} shadow={false} />
+                <Critter avatar={s.profile?.avatar} color={s.profile?.color} size={34} mood={s.profile?.mood} shadow={false} />
                 <div>
                   <b>{s.profile?.nickname || "空位"}</b>
                   <span>{s.profile ? (s.connected ? "在线" : "暂时离开") : "等 TA"}</span>

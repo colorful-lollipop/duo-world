@@ -924,8 +924,48 @@ img {
 
 .avatar-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+}
+
+.mood-row {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  flex-wrap: wrap;
+}
+
+.mood-option {
+  border: 2px solid transparent;
+  background: #fffdf6;
+  border-radius: 14px;
+  padding: 4px 6px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.mood-option small {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.mood-option:hover {
+  transform: translateY(-2px);
+  background: #fff8e1;
+}
+
+.mood-option.selected {
+  border-color: var(--ink);
+  background: #fff5c9;
+  box-shadow: 0 2px 0 rgba(58, 38, 24, 0.2);
+}
+
+.mood-option.selected small {
+  color: var(--ink);
 }
 
 .avatar-option {
@@ -1007,7 +1047,7 @@ img {
 }
 
 .profile-form.compact .avatar-grid {
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 4px;
 }
 
@@ -1022,6 +1062,20 @@ img {
 }
 
 .profile-form.compact .avatar-option small {
+  font-size: 9px;
+}
+
+.profile-form.compact .mood-option {
+  padding: 2px 4px 1px;
+  border-radius: 10px;
+}
+
+.profile-form.compact .mood-option .critter {
+  width: 34px;
+  height: 34px;
+}
+
+.profile-form.compact .mood-option small {
   font-size: 9px;
 }
 

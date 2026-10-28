@@ -1,12 +1,27 @@
-import type { AvatarId, Profile } from "../types";
+import type { AvatarId, Mood, Profile } from "../types";
 
 const PROFILE_KEY = "duo.profile";
 const LAST_ROOM_KEY = "duo.lastRoom";
 const TOKEN_PREFIX = "duo.token.";
 const SOUND_KEY = "duo.sound";
 
-const AVATARS: AvatarId[] = ["bunny", "bear", "cat", "dog", "fox", "penguin"];
+const AVATARS: AvatarId[] = [
+  "bunny",
+  "bear",
+  "cat",
+  "dog",
+  "fox",
+  "penguin",
+  "pig",
+  "mouse",
+  "elephant",
+  "hippo",
+  "boar",
+  "donkey",
+  "cow",
+];
 const COLORS = ["#FF6B6B", "#4D9DFF", "#2EC4A6", "#FFC93C", "#9B7BFF", "#FF9A76"];
+const MOODS: Mood[] = ["normal", "joy", "wow", "sad", "sleep"];
 
 export function loadProfile(): Profile | null {
   try {
@@ -18,6 +33,7 @@ export function loadProfile(): Profile | null {
       nickname: p.nickname.slice(0, 12),
       avatar: AVATARS.includes(p.avatar) ? p.avatar : "bunny",
       color: COLORS.includes(p.color) ? p.color : COLORS[0],
+      mood: MOODS.includes(p.mood) ? p.mood : "joy",
     };
   } catch {
     return null;
@@ -78,4 +94,4 @@ export function saveSound(on: boolean) {
   } catch {}
 }
 
-export { AVATARS, COLORS };
+export { AVATARS, COLORS, MOODS };

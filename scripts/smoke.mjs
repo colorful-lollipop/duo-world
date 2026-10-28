@@ -28,7 +28,7 @@ async function api(path, options = {}) {
 }
 
 function connect(ticket) {
-  const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws?code=${ticket.code}&token=${ticket.token}`);
+  const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws?code=${ticket.code}`);
   const client = {
     ws,
     seat: null,
@@ -38,6 +38,9 @@ function connect(ticket) {
     inkSyncs: [],
     reactions: [],
   };
+  ws.on("open", () => {
+    ws.send(JSON.stringify({ type: "auth", token: ticket.token }));
+  });
   ws.on("message", (raw) => {
     let msg;
     try {
@@ -378,7 +381,8 @@ try {
 
   // 错误的 token 会被拒绝
   const badCode = await new Promise((resolve) => {
-    const bad = new WebSocket(`ws://127.0.0.1:${PORT}/ws?code=${ticketA.code}&token=nope`);
+    const bad = new WebSocket(`ws://127.0.0.1:${PORT}/ws?code=${ticketA.code}`);
+    bad.on("open", () => bad.send(JSON.stringify({ type: "auth", token: "nope" })));
     bad.on("close", (code) => resolve(code));
     setTimeout(() => resolve(0), 3000);
   });

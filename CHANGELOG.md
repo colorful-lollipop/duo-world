@@ -3,6 +3,21 @@
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] - 2026-10-28
+
+### 新增
+
+- **13 种小动物**：新增小猪、小老鼠、小象、大河马、大野猪、驴、牛，每种都有专属造型（粉鼻、长耳、卷鼻、宽嘴、鬃毛、獠牙、花斑等）
+- **心情系统**：档案新增 `mood`（平静 / 开心 / 惊喜 / 难过 / 犯困），表单实时预览，保存并同步到大厅与对局
+- **生产部署**：https://love.zulogic.cn（Node 22 + systemd + OpenResty + `*.zulogic.cn` 通配符证书）
+
+### 安全 / 可观测
+
+- WS token 从 URL 移到首帧 `auth`，URL 不再出现长期凭证
+- `helmet` + CSP + HSTS（生产环境）、HTTP 层 create/join/info 限流
+- 结构化 JSON 日志（含 `x-request-id`）、`/metrics` Prometheus 指标、`/api/health` 房间数
+- 详见 `docs/DEPLOY.md`
+
 ## [1.0.1] - 2026-10-28
 
 ### 变更

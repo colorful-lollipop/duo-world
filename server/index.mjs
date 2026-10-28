@@ -2,10 +2,14 @@ import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { WebSocketServer } from "ws";
 import { GAMES } from "./meta.mjs";
+import { inc, log, metricsText, setRoomsActive } from "./observability.mjs";
 import {
   RoomError,
   attachSocket,
@@ -20,6 +24,7 @@ import {
   handleAction,
   joinRoom,
   publicInfo,
+  roomCount,
   sanitizeProfile,
   selectGame,
   setProfile,
@@ -32,13 +37,103 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 8790;
 const HOST = process.env.HOST || "0.0.0.0";
+const IS_PROD = process.env.NODE_ENV === "production";
 
 const app = express();
+app.set("trust proxy", process.env.TRUST_PROXY === "1" ? 1 : false);
+app.use(
+  helmet({
+    contentSecurityPolicy: IS_PROD
+      ? {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'", "ws:", "wss:"],
+            fontSrc: ["'self'", "data:"],
+            manifestSrc: ["'self'"],
+            workerSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            frameAncestors: ["'none'"],
+            formAction: ["'self'"],
+          },
+        }
+      : false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    hsts: IS_PROD ? { maxAge: 15552000, includeSubDomains: true } : false,
+  }),
+);
 app.use(express.json({ limit: "512kb" }));
 app.disable("x-powered-by");
 
+app.use((req, res, next) => {
+  if (!req.path.startsWith("/api")) return next();
+  inc("http_requests_total");
+  const requestId = randomUUID().slice(0, 8);
+  const started = Date.now();
+  res.setHeader("x-request-id", requestId);
+  res.on("finish", () => {
+    const ctx = {
+      requestId,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      ms: Date.now() - started,
+    };
+    if (res.statusCode >= 500) {
+      inc("http_errors_total");
+      log("error", "http_error", ctx);
+    } else if (res.statusCode >= 400) {
+      log("warn", "http_warn", ctx);
+    } else {
+      log("info", "http", ctx);
+    }
+  });
+  next();
+});
+
+const limitMessage = { code: "RATE_LIMITED", message: "操作太频繁，休息一下再试" };
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: IS_PROD ? 300 : 3000,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: limitMessage,
+});
+const createLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: IS_PROD ? 10 : 1000,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: limitMessage,
+});
+const joinLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: IS_PROD ? 20 : 1000,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: limitMessage,
+});
+const infoLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: IS_PROD ? 60 : 1000,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: limitMessage,
+});
+app.use("/api", apiLimiter);
+
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, games: GAMES.length, uptime: Math.round(process.uptime()) });
+  setRoomsActive(roomCount());
+  res.json({ ok: true, games: GAMES.length, rooms: roomCount(), uptime: Math.round(process.uptime()) });
+});
+
+app.get("/metrics", (req, res) => {
+  setRoomsActive(roomCount());
+  res.type("text/plain").send(metricsText());
 });
 
 function lanUrls() {
@@ -69,7 +164,7 @@ app.get("/api/games", (req, res) => {
   res.json({ games: GAMES });
 });
 
-app.post("/api/rooms", (req, res, next) => {
+app.post("/api/rooms", createLimiter, (req, res, next) => {
   try {
     const profile = sanitizeProfile(req.body?.profile);
     const { room, seat, token } = createRoom(profile);
@@ -79,7 +174,7 @@ app.post("/api/rooms", (req, res, next) => {
   }
 });
 
-app.post("/api/rooms/:code/join", (req, res, next) => {
+app.post("/api/rooms/:code/join", joinLimiter, (req, res, next) => {
   try {
     const profile = sanitizeProfile(req.body?.profile);
     const { room, seat, token } = joinRoom(req.params.code, profile);
@@ -90,7 +185,7 @@ app.post("/api/rooms/:code/join", (req, res, next) => {
   }
 });
 
-app.get("/api/rooms/:code", (req, res, next) => {
+app.get("/api/rooms/:code", infoLimiter, (req, res, next) => {
   try {
     const info = publicInfo(req.params.code);
     if (!info) throw new RoomError("ROOM_NOT_FOUND", "房间不存在或已经过期啦", 404);
@@ -106,7 +201,7 @@ app.use((err, req, res, next) => {
   } else if (err?.type === "entity.parse.failed") {
     res.status(400).json({ code: "BAD_JSON", message: "请求格式不太对，再试一次吧" });
   } else {
-    console.error(err);
+    log("error", "unhandled_error", { requestId: req.requestId, error: String(err?.message || err) });
     res.status(500).json({ code: "INTERNAL", message: "服务开小差了，稍后再试一次吧" });
   }
 });
@@ -139,30 +234,33 @@ server.on("upgrade", (req, socket, head) => {
     return;
   }
   const code = String(url.searchParams.get("code") || "").toUpperCase();
-  const token = String(url.searchParams.get("token") || "");
   const room = getRoom(code);
   wss.handleUpgrade(req, socket, head, (ws) => {
     if (!room) {
       ws.close(4004, "ROOM_NOT_FOUND");
       return;
     }
-    const seat = findSeatByToken(room, token);
-    if (seat < 0) {
-      ws.close(4001, "BAD_TOKEN");
-      return;
-    }
-    wss.emit("connection", ws, req, { room, seat });
+    wss.emit("connection", ws, req, { room });
   });
 });
 
-wss.on("connection", (ws, req, { room, seat }) => {
+wss.on("connection", (ws, req, { room }) => {
   ws.isAlive = true;
   ws.on("pong", () => {
     ws.isAlive = true;
   });
-  attachSocket(room, seat, ws);
-  ws.send(JSON.stringify({ type: "welcome", seat, state: snapshot(room, { includeInk: true }) }));
-  broadcastState(room);
+  inc("ws_connections_total");
+
+  let seat = -1;
+  let authed = false;
+  let authCount = 0;
+  let authStart = Date.now();
+  const authTimer = setTimeout(() => {
+    if (!authed) {
+      inc("ws_auth_failures_total");
+      ws.close(4001, "AUTH_TIMEOUT");
+    }
+  }, 10_000);
 
   const limiter = { start: Date.now(), count: 0 };
   const allow = () => {
@@ -176,6 +274,7 @@ wss.on("connection", (ws, req, { room, seat }) => {
   };
 
   ws.on("message", (raw) => {
+    inc("ws_messages_total");
     let msg;
     try {
       msg = JSON.parse(String(raw));
@@ -183,6 +282,41 @@ wss.on("connection", (ws, req, { room, seat }) => {
       return;
     }
     if (!msg || typeof msg.type !== "string") return;
+
+    // 首帧认证：URL 里不再出现长期 token
+    if (!authed) {
+      if (msg.type !== "auth") {
+        ws.send(JSON.stringify({ type: "error", code: "AUTH_REQUIRED", message: "请先完成连接认证" }));
+        return;
+      }
+      const now = Date.now();
+      if (now - authStart > 10_000) {
+        authStart = now;
+        authCount = 0;
+      }
+      authCount++;
+      if (authCount > 10) {
+        inc("ws_auth_failures_total");
+        ws.close(4001, "TOO_MANY_AUTH");
+        return;
+      }
+      const token = typeof msg.token === "string" ? msg.token : "";
+      const found = findSeatByToken(room, token);
+      if (found < 0) {
+        inc("ws_auth_failures_total");
+        ws.close(4001, "BAD_TOKEN");
+        return;
+      }
+      seat = found;
+      authed = true;
+      clearTimeout(authTimer);
+      attachSocket(room, seat, ws);
+      ws.send(JSON.stringify({ type: "welcome", seat, state: snapshot(room, { includeInk: true }) }));
+      broadcastState(room);
+      log("info", "ws_auth", { roomCode: room.code, seat });
+      return;
+    }
+
     try {
       switch (msg.type) {
         case "ping": {
@@ -255,15 +389,18 @@ wss.on("connection", (ws, req, { room, seat }) => {
       if (err instanceof RoomError) {
         ws.send(JSON.stringify({ type: "error", code: err.code, message: err.message }));
       } else {
-        console.error("ws message error", err);
+        log("error", "ws_message_error", { roomCode: room.code, seat, error: String(err?.message || err) });
         ws.send(JSON.stringify({ type: "error", code: "INTERNAL", message: "刚才那一步没成功，再试一次吧" }));
       }
     }
   });
 
   ws.on("close", () => {
-    detachSocket(room, seat, ws);
-    broadcastState(room);
+    clearTimeout(authTimer);
+    if (authed) {
+      detachSocket(room, seat, ws);
+      broadcastState(room);
+    }
   });
   ws.on("error", () => {});
 });

@@ -33,7 +33,7 @@ export function TalkCardsStage(props: StageProps) {
       <div className="stage-topline">
         <div className="turn-pill">
           {turnProfile && (
-            <Critter avatar={turnProfile.avatar} color={turnProfile.color} size={30} mood={isTurn ? "joy" : "normal"} shadow={false} />
+            <Critter avatar={turnProfile.avatar} color={turnProfile.color} size={30} mood={isTurn ? "joy" : (turnProfile.mood ?? "normal")} shadow={false} />
           )}
           <span>
             {isTurn ? "轮到你抽卡" : `轮到 ${turnProfile?.nickname || "TA"} 抽卡`} · 第 {d.idx + 1} 张

@@ -74,7 +74,7 @@ export function GomokuStage(props: StageProps) {
           const isTurn = d.turn === n;
           return (
             <div className={"gomoku-player " + (isTurn ? "turn" : "") + (n === seat ? " me" : "")} key={n}>
-              <Critter avatar={p?.avatar} color={p?.color} size={48} mood={isTurn ? "joy" : "normal"} className={isTurn ? "hop" : ""} />
+              <Critter avatar={p?.avatar} color={p?.color} size={48} mood={isTurn ? "joy" : (p?.mood ?? "normal")} className={isTurn ? "hop" : ""} />
               <div className="gomoku-player-text">
                 <b>{n === seat ? "你" : p?.nickname || "TA"}</b>
                 <span>

@@ -9,9 +9,9 @@ export interface Reaction {
 
 type Listener = (msg: any) => void;
 
-function wsUrl(code: string, token: string) {
+function wsUrl(code: string) {
   const proto = location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${location.host}/ws?code=${encodeURIComponent(code)}&token=${encodeURIComponent(token)}`;
+  return `${proto}//${location.host}/ws?code=${encodeURIComponent(code)}`;
 }
 
 export function useRoom(code: string, token: string | null) {
@@ -85,7 +85,7 @@ export function useRoom(code: string, token: string | null) {
       setStatus((s) => (s === "online" ? s : "connecting"));
       let ws: WebSocket;
       try {
-        ws = new WebSocket(wsUrl(code, token));
+        ws = new WebSocket(wsUrl(code));
       } catch {
         setStatus("offline");
         return;
@@ -149,6 +149,10 @@ export function useRoom(code: string, token: string | null) {
       };
 
       ws.onopen = () => {
+        // token 放在首帧 auth 里，不再出现在 URL / 反代日志中
+        try {
+          ws.send(JSON.stringify({ type: "auth", token }));
+        } catch {}
         setStatus((s) => (s === "online" ? s : "connecting"));
         offsetRef.current = offsetRef.current || 0;
       };
