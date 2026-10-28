@@ -8,3 +8,6 @@ _shots
 
 data
 _shots
+
+# 部署打包产物
+*.tar.gz
