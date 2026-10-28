@@ -1,6 +1,6 @@
 # 二人世界 · 工作交接文档
 
-> 写于 2026-10-28，对应版本 **v1.4.0**。
+> 写于 2026-10-28，对应版本 **v1.4.1**。
 > 这份文档的目标：让一个完全没参与过的人，在一小时内能跑起来、看懂结构、敢改代码、敢发布。
 
 ---
@@ -12,7 +12,7 @@
 
 | 项 | 值 |
 | --- | --- |
-| 当前版本 | 1.4.0（tag `v1.4.0`，GitHub Release 已发） |
+| 当前版本 | 1.4.1（tag `v1.4.1`，GitHub Release 已发） |
 | 前端 | React 18 + Vite 5 + TypeScript（`src/`，无路由库，自写 hash 无关的 path 路由） |
 | 后端 | Node ESM `.mjs` + Express 4 + `ws`（`server/`） |
 | 持久化 | `node:sqlite`（`server/store.mjs`），不可用时自动回退 `data/store.json` |

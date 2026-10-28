@@ -389,16 +389,34 @@
 }
 
 @media (max-width: 720px) {
+  .talk-stage {
+    /* 给右下角的反应浮球留出空间，输入框和发送键不会被挡住 */
+    padding-bottom: 58px;
+  }
+
   .talk-body {
     grid-template-columns: 1fr;
   }
 
+  /* 手机上聊天框不抢高度：先是「空状态 + 输入框」的紧凑条，
+     有消息后长到 max-height，消息列表内部滚动。 */
   .talk-chat {
-    height: min(38dvh, 300px);
+    height: auto;
+    max-height: min(32dvh, 300px);
+  }
+
+  .talk-chat-messages {
+    flex: 0 1 auto;
+    min-height: 64px;
+    max-height: min(24dvh, 220px);
+  }
+
+  .talk-chat-input {
+    padding-right: 58px;
   }
 
   .talk-card {
-    height: min(52dvh, 520px);
+    height: min(40dvh, 420px);
     aspect-ratio: auto;
   }
 
@@ -407,18 +425,15 @@
   }
 
   .card-question {
-    font-size: 22px;
+    font-size: 21px;
   }
 }
 
 @media (max-width: 400px) {
-  .talk-chat {
-    height: min(34dvh, 250px);
-  }
-
   .talk-chat-input {
     gap: 6px;
     padding: 8px 10px;
+    padding-right: 58px;
   }
 
   .talk-chat-input input {
@@ -426,7 +441,11 @@
   }
 
   .card-question {
-    font-size: 20px;
+    font-size: 19px;
+  }
+
+  .talk-card {
+    height: min(38dvh, 380px);
   }
 
   .talk-card-face {
