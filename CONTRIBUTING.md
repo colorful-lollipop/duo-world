@@ -18,19 +18,22 @@ npm run smoke      # 端到端冒烟测试（两个客户端跑完所有游戏�
 npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]
 ```
 
-脚手架会生成三个文件并登记到 `shared/games.json`：
+脚手架会生成这一款游戏需要的全部文件：
 
-1. `server/games/<id>.mjs` —— 服务端规则（默认导出 `create/action/tick/summary`）
-2. `src/games/<id>.tsx` —— 游戏界面（导出 `Stage`，可选 `ResultExtra`）
-3. `shared/games.json` —— 名称、介绍、规则、设置表单
+1. `shared/games/<id>.json` —— 名称、介绍、规则、设置表单
+2. `server/games/<id>.mjs` —— 服务端规则（默认导出 `create/action/tick/summary`）
+3. `src/games/<id>.tsx` + `src/games/<id>.css` —— 界面与独立样式
+4. `tests/unit/<id>.test.mjs` —— 单元测试
+5. `scripts/smoke/<id>.mjs` —— 端到端冒烟
+6. `docs/games/<id>.md` —— 只讲这一款游戏的开发说明
 
 然后：
 
-- 把规则和界面写出来；
-- `npm run check:games` 校验三件套；
-- `npm run smoke` 保证不破坏现有游戏。
+- 只读 `docs/games/<id>.md`，把规则和界面写出来；
+- `npm run test:game -- <id>` 和 `npm run smoke:game -- <id>` 单独验证这一款；
+- 合入前 `npm run check:games && npm run smoke` 保证不破坏现有游戏。
 
-详细的约定见 `server/games/_template.mjs` 和 `src/games/_template.tsx`。
+详细的通用约定见 `server/games/_template.mjs` 和 `src/games/_template.tsx`。
 
 ## 代码风格
 

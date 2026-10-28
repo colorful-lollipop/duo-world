@@ -11,8 +11,10 @@ npm run build      # tsc --noEmit && node scripts/check-games.mjs && vite build
 npm run serve      # build + start（http://localhost:8790）
 npm run start      # 只启动服务（需要先 build 出 dist）
 npm run smoke      # 端到端：起测试服务器(18790) → 双客户端跑完 7 个游戏 → 自动杀进程
+npm run smoke:game -- <id>  # 只跑一款游戏的端到端（端口可用 SMOKE_PORT 覆盖）
 npm run test       # Vitest 单测（tests/unit：各游戏规则 + store + rooms）
-npm run check:games # 只做游戏三件套结构校验
+npm run test:game -- <id>   # 只跑一款游戏的单测
+npm run check:games # 只做游戏四件套结构校验
 npm run assets     # 重新生成 PWA 图标 / OG 图（scripts/gen-assets.mjs，需要本机 Chrome）
 npm run backup     # 数据备份（scripts/backup.mjs，先 checkpoint 再快照到 data/backups/）
 npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手架
@@ -27,21 +29,38 @@ npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手
 
 ## 加一个游戏（最核心的约定）
 
-一个游戏 = 三个文件，**文件名就是游戏 id（kebab-case，必须完全一致）**，不需要改任何注册表：
+一个游戏 = **六个文件 + 一篇只讲它自己的文档**，文件名就是游戏 id（kebab-case，必须完全一致），不需要改任何注册表；每一款都可以单独开发、单独测试、单独发布，改 A 游戏不会碰到 B 游戏的文件：
 
 | 文件 | 内容 | 约定 |
 | --- | --- | --- |
-| `shared/games.json` | 元数据 | 追加一条：`id/name/emoji/tagline/intro/rules/tags/duration/net/gradient/settings`。`settings` 数组自动渲染成大厅设置表单（仅支持 `select/multi/text` 三种 type）。 |
-| `server/games/<id>.mjs` | 服务端规则 | **默认导出** `{ create, action, tick?, summary? }`（自动发现器只读 `mod.default`，命名导出会直接报错）。 |
-| `src/games/<id>.tsx` | 客户端界面 | 导出 `export const Stage`（必填，接收 `StageProps`），可选 `export const ResultExtra`。Vite 自动拆成独立 chunk，开局才下载。 |
+| `shared/games/<id>.json` | 元数据 | `order/name/emoji/tagline/intro/rules/tags/duration/net/gradient/settings`。`settings` 数组自动渲染成大厅设置表单（仅支持 `select/multi/text` 三种 type）。目录里每个 json 自动发现，按 `order` 排序。 |
+| `server/games/<id>.mjs` | 服务端规则 | **默认导出** `{ create, action, tick?, summary?, view? }`（自动发现器只读 `mod.default`，命名导出会直接报错）。 |
+| `server/games/_<id>.*.mjs` | 题库 / 数值（可选） | 下划线开头，自动发现器会跳过；只被这款游戏 import。 |
+| `src/games/<id>.tsx` | 客户端界面 | 导出 `export const Stage`（必填，接收 `StageProps`），可选 `export const ResultExtra`。 |
+| `src/games/<id>.css` | 界面样式 | 在 tsx 里 `import "./<id>.css"`，Vite 会拆成这款游戏的按需 CSS chunk；不要写进 `src/styles.css`。 |
+| `tests/unit/<id>.test.mjs` | 单元测试 | `npm run test:game -- <id>` 只跑它。 |
+| `scripts/smoke/<id>.mjs` | 端到端 | 默认导出 `run(ctx)`；`npm run smoke:game -- <id>` 只跑它。 |
+| `docs/games/<id>.md` | 单游戏说明 | 数据形状、动作、坑点、测试命令；subagent 只读这一篇就能开工。 |
 
-- 三件套缺一不可：`scripts/check-games.mjs`（`npm run build` 前置步骤）会校验，缺文件 / 缺 `export const Stage` / settings key 重复都会让构建失败。
+- 三件套缺一不可：`scripts/check-games.mjs`（`npm run build` 前置步骤）会校验元数据 / 服务端 / 客户端 / 单测 / 冒烟模块，缺文件 / 缺 `export const Stage` / settings key 重复都会让构建失败。
+- 脚手架 `npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]` 会一次生成上面七个文件（含单测、冒烟、独立 CSS、单游戏文档），不需要手工登记。
 - 服务端规则：`create(room)` 返回可 JSON 序列化的 `game.data`；`action(room, seat, action, now)` 直接改 `room.game.data`，返回 `null`=成功、字符串=给玩家的错误；`data.phase === "over"` 时服务端自动调用 `summary()` 写纪念册。
+- 需要按座位藏信息（例如猜词答案、对手的候选词）时，在服务端导出 `view(data, seat)`，返回给该座位的浅拷贝；`broadcastState` 会对每个座位分别调用。不要只在客户端藏。
 - 结算页由 `src/games/GameStageHost.tsx` **统一渲染**：它发现 `data.phase === "over"` 就渲染 `GameResult` + 游戏的 `ResultExtra`。**Stage 里不要处理 over，也不要 import `GameResult`**（会破坏按需拆包）。
 - `StageProps = { room, seat, game, meta, act, send, now, subscribe }`；`act(action)` 发游戏动作，`send(msg)` 发任意 WS 消息（画板等），`now()` 是校准后的服务端时间。
 - 通用工具在 `server/games/_kit.mjs`：胜场统计用 `gameWins(room, id)`（存到 `room.stats.wins[id]`，不要再造 `gomokuWins` 之类的字段）；还有 `shuffle / pickRandom / normalizeText / clampInt / otherSeat`。
 - `server/games/index.mjs` 自动发现 `server/games/*.mjs`（跳过 `_` 开头和 `index`）；`src/games/registry.ts` 用 `import.meta.glob` 按需加载（负向排除 `GameStageHost.tsx` 和 `_template.tsx`，改名时要同步）。
 - 模板：`server/games/_template.mjs`、`src/games/_template.tsx`；脚手架 `scripts/new-game.mjs` 已实测可用。
+
+### 单游戏开发闭环（subagent 推荐姿势）
+
+```bash
+npm run test:game -- brothers   # 只跑这一款：改完立刻知道规则有没有坏
+npm run smoke:game -- brothers  # 只起一台服务器，双客户端跑这一款
+npm run build                   # 只在你准备合入前跑
+```
+
+只读 `docs/games/<id>.md` + 本节的通用约定即可开工；不要改别的游戏的 `src/games/<other>.*`、`server/games/<other>.mjs`、`shared/games/<other>.json`。公共代码（`_kit.mjs`、`components/`、`styles.css`）改动要慎重，能写进自己文件就别动公共层。
 
 ## 架构与网络
 

@@ -657,7 +657,7 @@ WECHAT_API_V3_KEY=
 | 游戏规则 | `server/games/*.mjs` |
 | 游戏界面 | `src/games/*.tsx` |
 | 实时连接 | `src/lib/useRoom.ts` |
-| 设置 schema | `shared/games.json`、`server/meta.mjs` |
+| 设置 schema | `shared/games/<id>.json`、`server/meta.mjs` |
 | 结构与端到端校验 | `scripts/check-games.mjs`、`scripts/smoke.mjs` |
 | 部署 | `Dockerfile`、`docker-compose.yml`、`.github/workflows/ci.yml` |
 

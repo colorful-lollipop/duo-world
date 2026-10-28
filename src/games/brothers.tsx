@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import "./brothers.css";
 import type { StageProps, ResultExtraProps } from "./types";
 import { Icon } from "../components/Icon";
 

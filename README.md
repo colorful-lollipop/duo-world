@@ -125,7 +125,8 @@ docker compose up -d --build
 ## 项目结构
 
 ```
-shared/games.json           # 游戏目录 + 设置表单（前后端共用）
+shared/
+  games/<id>.json           # 每个游戏一份元数据 + 设置表单（按 order 排序，自动发现）
 server/
   index.mjs                 # Express + WebSocket + 静态文件
   rooms.mjs                 # 房间、座位、广播、结算、内存清理
@@ -135,8 +136,8 @@ server/
     index.mjs               # 自动发现 server/games/*.mjs 并校验
     _kit.mjs                # 通用工具（随机、归一化、胜场统计）
     _template.mjs           # 服务端游戏模板
-    <id>.mjs                # 每个游戏的规则，默认导出 create/action/tick/summary
-  content/                  # 卡牌、词库、题库
+    <id>.mjs                # 每个游戏的规则，默认导出 create/action/tick/summary/view
+    _<id>.*.mjs             # 该游戏专属的题库 / 数值（下划线开头，不会被当成游戏）
 src/
   pages/                    # 首页、房间页
   games/
@@ -145,23 +146,28 @@ src/
     types.ts                # StageProps / ResultExtraProps 约定
     _template.tsx           # 界面模板
     <id>.tsx                # 每个游戏的界面，导出 Stage，可选 ResultExtra
+    <id>.css                # 每个游戏自己的样式，随游戏 chunk 按需加载
   components/ lib/          # 小动物、场景、弹窗、WebSocket、音效、纪念册
 public/
   manifest.webmanifest      # PWA 清单
   sw.js                     # 离线壳（只缓存首页与静态资源，API 永远走网络）
   icons/ og.png             # 图标与分享卡
 tests/
-  unit/                     # Vitest：游戏规则、持久化、房间
+  unit/<id>.test.mjs        # 每款游戏一份单测 + 房间/存储
 scripts/
-  new-game.mjs              # 新游戏脚手架
+  new-game.mjs              # 新游戏脚手架（一次生成全部文件）
   check-games.mjs           # 结构校验（build 前自动执行）
-  smoke.mjs                 # 双客户端端到端测试
+  test-game.mjs             # 单游戏单测
+  smoke.mjs                 # 端到端入口（自动发现）
+  smoke/<id>.mjs            # 每款游戏一份端到端流程
   visual.mjs                # 界面截图（可选）
+docs/
+  games/<id>.md             # 单游戏说明：只读这一篇就能改这款游戏
 ```
 
 ## 加一个新游戏
 
-**不需要改任何中央注册文件。** 一条命令生成三件套：
+**不需要改任何中央注册文件。** 一条命令生成这一款游戏的全部文件：
 
 ```bash
 npm run new:game -- red-rope 红绳 🔗 "#FF8A8A" "#E23E57"
@@ -170,9 +176,13 @@ npm run new:game -- red-rope 红绳 🔗 "#FF8A8A" "#E23E57"
 生成：
 
 ```
-shared/games.json          # 追加一条元数据（名称/介绍/规则/设置）
-server/games/red-rope.mjs  # 服务端规则
-src/games/red-rope.tsx     # 客户端界面
+shared/games/red-rope.json     # 元数据（名称/介绍/规则/设置）
+server/games/red-rope.mjs      # 服务端规则
+src/games/red-rope.tsx         # 客户端界面
+src/games/red-rope.css         # 这款游戏的样式（按需加载）
+tests/unit/red-rope.test.mjs   # 单测
+scripts/smoke/red-rope.mjs     # 端到端
+docs/games/red-rope.md         # 单游戏说明
 ```
 
 然后实现规则与界面，跑校验：
@@ -234,10 +244,11 @@ export function ResultExtra({ game }: any) {
 }
 ```
 
-- 文件名就是游戏 id，必须和 `shared/games.json` 一致。
-- Vite 会自动把每个 `src/games/<id>.tsx` 拆成独立 chunk，开局才加载。
+- 文件名就是游戏 id，必须和 `shared/games/<id>.json` 一致。
+- Vite 会自动把每个 `src/games/<id>.tsx` 和 `<id>.css` 拆成独立 chunk，开局才加载。
 - `GameStageHost` 统一渲染结算页；界面不需要处理 `phase === "over"`。
-- 设置项由 `shared/games.json` 的 schema 自动渲染；服务端会校验非法值并回退默认。
+- 设置项由 `shared/games/<id>.json` 的 schema 自动渲染；服务端会校验非法值并回退默认。
+- 每款游戏可以单独开发、单独测试：`npm run test:game -- <id>`、`npm run smoke:game -- <id>`，只需要读 `docs/games/<id>.md`。
 
 ## 脚本
 
@@ -247,8 +258,10 @@ npm run build       # 类型检查 + 游戏结构校验 + 生产构建
 npm run start       # 运行生产构建
 npm run serve       # build + start
 npm run test        # Vitest 单元测试（规则 / 持久化 / 房间）
+npm run test:game   # 只跑一款游戏的单测：npm run test:game -- brothers
 npm run smoke       # 双客户端跑完所有游戏（含断线重连、历史战绩、数据导出与注销）
-npm run check:games # 只做游戏三件套校验
+npm run smoke:game  # 只跑一款游戏的端到端：npm run smoke:game -- brothers
+npm run check:games # 只做游戏结构校验
 npm run new:game    # 新游戏脚手架
 npm run backup      # 数据备份（SQLite 先 checkpoint 再快照到 data/backups/）
 npm run assets      # 重新生成 PWA 图标 / OG 分享图（需要本机 Chrome）

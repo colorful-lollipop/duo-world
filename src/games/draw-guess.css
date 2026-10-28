@@ -1,0 +1,393 @@
+/* 只属于「你画我猜」的样式。由 draw-guess.tsx import，随游戏 chunk 按需加载。 */
+
+.field input,
+.field textarea,
+.setting-text input,
+.join-row input,
+.guess-form input {
+  width: 100%;
+  border: 2px solid rgba(58, 38, 24, 0.22);
+  background: #fffdf6;
+  border-radius: 15px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field input:focus,
+.field textarea:focus,
+.setting-text input:focus,
+.join-row input:focus,
+.guess-form input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(255, 210, 63, 0.32);
+}
+
+.field input::placeholder,
+.field textarea::placeholder,
+.join-row input::placeholder,
+.guess-form input::placeholder {
+  color: #b7a690;
+}
+
+/* ================= 你画我猜 ================= */
+
+.draw-stage {
+  max-width: 760px;
+}
+
+.draw-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.draw-hud > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.draw-score {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.timer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #fff8e1;
+  border: 1.5px solid rgba(58, 38, 24, 0.16);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.timer-chip.urgent {
+  background: #ffe1e1;
+  border-color: #e05252;
+  color: #b02a2a;
+  animation: soft-pulse 0.9s ease-in-out infinite;
+}
+
+.choose-head {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.choose-head h2 {
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.choose-mascot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+
+.choice-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.word-choice {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-height: 108px;
+  justify-content: center;
+}
+
+.word-choice strong {
+  font-size: 19px;
+  font-family: var(--display);
+}
+
+.word-choice small {
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.stars {
+  color: #e3a64a;
+  letter-spacing: 1px;
+}
+
+.draw-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #fff5d6;
+  border: 1.5px dashed rgba(58, 38, 24, 0.28);
+  border-radius: 14px;
+  padding: 8px 14px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.draw-prompt strong {
+  font-size: 15px;
+  font-family: var(--display);
+}
+
+.draw-prompt span {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+
+.draw-prompt.is-reveal {
+  background: #e9fbe6;
+  border-color: #5daf3c;
+}
+
+.canvas-frame {
+  position: relative;
+  width: min(100%, 560px, calc(100dvh - 360px));
+  margin: 0 auto;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 6px #fff, 0 4px 0 rgba(58, 38, 24, 0.14);
+}
+
+.drawing-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  touch-action: none;
+  cursor: default;
+}
+
+.drawing-canvas.can-draw {
+  cursor: crosshair;
+}
+
+.canvas-live {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(58, 38, 24, 0.82);
+  color: #fff8e1;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 10px;
+  animation: soft-pulse 1.6s ease-in-out infinite;
+}
+
+.canvas-sign {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(58, 38, 24, 0.2);
+  pointer-events: none;
+}
+
+.draw-tools {
+  width: min(100%, 560px, calc(100dvh - 360px));
+  margin: 10px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+.draw-tools {
+    width: 100%;
+  }
+}
+
+.ink-palette {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ink-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1.5px rgba(58, 38, 24, 0.22);
+  padding: 0;
+  transition: transform 0.15s ease;
+}
+
+.ink-dot:hover {
+  transform: scale(1.12);
+}
+
+.ink-dot.active {
+  box-shadow: 0 0 0 3px var(--ink);
+  transform: scale(1.08);
+}
+
+.eraser-button {
+  margin-left: 4px;
+  border: 1.5px solid rgba(58, 38, 24, 0.22);
+  border-radius: 999px;
+  background: #fffdf6;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.2em;
+}
+
+.eraser-button.active {
+  background: #ffe1e1;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.draw-tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.brush-sizes {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1.5px solid rgba(58, 38, 24, 0.16);
+  border-radius: 999px;
+  background: #fffdf6;
+}
+
+.brush-size {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.brush-size span {
+  display: block;
+  border-radius: 50%;
+  background: var(--ink);
+  max-width: 22px;
+  max-height: 22px;
+}
+
+.brush-size.active {
+  background: var(--cream-2);
+}
+
+.guess-form {
+  width: min(100%, 560px);
+  margin: 12px auto 0;
+  display: flex;
+  gap: 8px;
+}
+
+.guess-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+.guesses {
+  width: min(100%, 560px);
+  margin: 10px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guesses p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: #f7f0de;
+  border-radius: 999px;
+  padding: 3px 11px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.guesses p span {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-weight: 800;
+}
+
+.guesses p.correct {
+  background: #dff8e5;
+  color: #1d7a43;
+  font-weight: 800;
+}
+
+.guesses p.near {
+  background: #fff2cc;
+  color: #8a5a31;
+}
+
+.draw-reveal {
+  margin: 12px auto 0;
+  width: min(100%, 560px);
+  background: #f0fbee;
+  border: 1.5px dashed #5daf3c;
+  border-radius: 16px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.draw-reveal p {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2f6b12;
+}
+
+@media (max-width: 720px) {
+.choice-cards {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+.word-choice {
+    min-height: 68px;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 10px 16px;
+  }
+.word-choice strong {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 400px) {
+.draw-tool-row {
+    gap: 5px;
+  }
+}

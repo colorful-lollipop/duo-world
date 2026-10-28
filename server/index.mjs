@@ -180,7 +180,7 @@ app.post("/api/rooms", createLimiter, (req, res, next) => {
   try {
     const profile = sanitizeProfile(req.body?.profile);
     const { room, seat, token } = createRoom(profile);
-    res.json({ code: room.code, seat, token, state: snapshot(room) });
+    res.json({ code: room.code, seat, token, state: snapshot(room, { seat }) });
   } catch (err) {
     next(err);
   }
@@ -191,7 +191,7 @@ app.post("/api/rooms/:code/join", joinLimiter, (req, res, next) => {
     const profile = sanitizeProfile(req.body?.profile);
     const { room, seat, token } = joinRoom(req.params.code, profile);
     broadcastState(room);
-    res.json({ code: room.code, seat, token, state: snapshot(room) });
+    res.json({ code: room.code, seat, token, state: snapshot(room, { seat }) });
   } catch (err) {
     next(err);
   }
@@ -367,7 +367,7 @@ wss.on("connection", (ws, req, { room }) => {
       authed = true;
       clearTimeout(authTimer);
       attachSocket(room, seat, ws);
-      ws.send(JSON.stringify({ type: "welcome", seat, state: snapshot(room, { includeInk: true }) }));
+      ws.send(JSON.stringify({ type: "welcome", seat, state: snapshot(room, { includeInk: true, seat }) }));
       broadcastState(room);
       log("info", "ws_auth", { roomCode: room.code, seat });
       return;
@@ -380,7 +380,7 @@ wss.on("connection", (ws, req, { room }) => {
           return;
         }
         case "refresh": {
-          ws.send(JSON.stringify({ type: "state", state: snapshot(room, { includeInk: true }) }));
+          ws.send(JSON.stringify({ type: "state", state: snapshot(room, { includeInk: true, seat }) }));
           return;
         }
         case "profile": {

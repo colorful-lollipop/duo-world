@@ -1,4 +1,12 @@
-import rawGames from "../shared/games.json";
+// 每个游戏一份 shared/games/<id>.json，文件名就是 id。
+// 这里按 order 排序；没有中央登记表，新增/改动一款游戏不会碰到别款的元数据。
+const metaModules = import.meta.glob<Omit<GameMeta, "id">>("../shared/games/*.json", {
+  eager: true,
+  import: "default",
+});
+const rawGames = Object.entries(metaModules)
+  .map(([path, meta]) => ({ id: path.split("/").pop()!.replace(/\.json$/, ""), ...meta }))
+  .sort((a, b) => (a.order || 0) - (b.order || 0));
 
 export type AvatarId =
   | "bunny"
@@ -80,6 +88,7 @@ export interface SettingField {
 
 export interface GameMeta {
   id: string;
+  order: number;
   name: string;
   emoji: string;
   tagline: string;

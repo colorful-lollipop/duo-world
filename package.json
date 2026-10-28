@@ -33,9 +33,11 @@
     "start": "node server/index.mjs",
     "serve": "npm run build && npm start",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:game": "node scripts/smoke.mjs --game",
     "check:games": "node scripts/check-games.mjs",
     "new:game": "node scripts/new-game.mjs",
     "test": "vitest run",
+    "test:game": "node scripts/test-game.mjs",
     "test:watch": "vitest",
     "assets": "node scripts/gen-assets.mjs",
     "backup": "node scripts/backup.mjs"

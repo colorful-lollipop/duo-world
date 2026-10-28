@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./mind-meld.css";
 import type { ResultExtraProps, StageProps } from "./types";
 import { Critter } from "../components/Critter";
 import { useNow } from "../lib/useNow";

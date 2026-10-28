@@ -45,10 +45,12 @@ npm run smoke      # 端到端：起测试服务器 18790，双客户端跑完 7
 
 | 命令 | 作用 | 注意 |
 | --- | --- | --- |
-| `npm run smoke` | 全流程 e2e | 占用 18790，端口被占会失败；`DATA_DIR` 用临时目录，跑完清理 |
+| `npm run smoke` | 全流程 e2e | 占用 18790（可用 `SMOKE_PORT` 覆盖）；`DATA_DIR` 用临时目录，跑完清理 |
+| `npm run smoke:game -- <id>` | 单游戏 e2e | 只跑 `scripts/smoke/<id>.mjs`，迭代一款游戏时最快 |
+| `npm run test:game -- <id>` | 单游戏单测 | 只跑 `tests/unit/<id>.test.mjs` |
 | `node scripts/visual.mjs` | 截图到 `_shots/` | 占用 18791，需要本机 Chrome + `playwright-core`；包含布局重叠断言 |
 | `node scripts/prod-check.mjs` | 线上巡检（真浏览器） | 直连 IP 绕过企业 DNS；会建房间、验证后再用 DELETE 清掉 |
-| `npm run new:game -- <id> <名称> [emoji]` | 新游戏脚手架 | 会同时往 `shared/games.json` 追加一条占位元数据（`tagline`/`rules`/`settings` 都是示例，需要自己改）；用 `--help` 看参数 |
+| `npm run new:game -- <id> <名称> [emoji]` | 新游戏脚手架 | 一次生成元数据、服务端、界面、独立 CSS、单测、冒烟、单游戏文档（占位内容需要自己改）；用 `--help` 看参数 |
 | `npm run assets` | 重新生成 PWA 图标 / OG 图 | 需要本机 Chrome，产物在 `public/` |
 | `npm run backup` | 备份一次 | `--verify` 会数行数；`DATA_DIR` / `BACKUP_KEEP` 可覆盖 |
 
@@ -66,25 +68,25 @@ npm run smoke      # 端到端：起测试服务器 18790，双客户端跑完 7
 原则：
 
 1. **服务端权威**：所有规则、计时、计分在服务端；客户端只发动作、渲染全量快照。不存在“客户端自己算”。
-2. **插件化游戏**：一款游戏 = 元数据 + 服务端规则 + 客户端界面三个文件，文件名即 id，无注册表。
+2. **插件化游戏**：一款游戏 = `shared/games/<id>.json` + `server/games/<id>.mjs` + `src/games/<id>.{tsx,css}` + `tests/unit/<id>.test.mjs` + `scripts/smoke/<id>.mjs` + `docs/games/<id>.md`，文件名即 id，无注册表；每款可独立开发/测试，互不共享题库或样式。
 3. **单实例**：房间在进程内存，SQLite 只负责恢复；横向扩展需要先把房间存储换成 Redis。
 4. **无账号**：身份 = 创建/加入时拿到的一串 token（浏览器 localStorage），服务端只存 sha256。
 
 ### 目录地图
 
 ```
-shared/games.json          # 游戏目录（大厅卡片、设置 schema、SEO 文案都从这里来）
+shared/games/<id>.json     # 每款游戏一份元数据（大厅卡片、设置 schema、SEO 文案），按 order 排序
 server/
   index.mjs                # HTTP/WS 入口：安全头、限流、日志、指标、静态托管、WS 认证
   rooms.mjs                # 房间状态机（核心，2000+ 行改动都落在这里）
   store.mjs                # 唯一存储层：sqlite 优先，回退 JSON；4 张表 + 迁移
-  meta.mjs                 # 读 shared/games.json，导出 GAME_MAP / sanitizeSettings
+  meta.mjs                 # 读 shared/games/*.json，导出 GAME_MAP / sanitizeSettings
   observability.mjs        # 结构化日志 + Prometheus 文本指标
   games/index.mjs          # 自动发现 server/games/*.mjs（跳过 _ 开头）
   games/_kit.mjs           # 通用工具：gameWins / shuffle / pickRandom / clampInt / normalizeText
   games/_template.mjs      # 新游戏模板
-  games/<id>.mjs           # 7 款游戏规则（默认导出 create/action/tick?/summary）
-  content/*.mjs            # 题库：聊天卡、画词、你懂我吗
+  games/<id>.mjs           # 7 款游戏规则（默认导出 create/action/tick?/summary/view?）
+  games/_<id>.*.mjs        # 每款游戏自己的题库 / 数值（下划线开头，自动发现器跳过）
 src/
   main.tsx                 # 入口：ErrorBoundary + SW 注册（仅 PROD）
   App.tsx                  # 路由：/r/:code → RoomPage；/terms、/privacy → LegalPage；其余 HomePage
@@ -94,11 +96,15 @@ src/
   games/GameStageHost.tsx  # 懒加载 Stage + 统一结算页（Stage 不处理 over）
   games/registry.ts        # import.meta.glob 按需加载
   games/<id>.tsx           # 7 款游戏界面（导出 Stage，可选 ResultExtra）
+  games/<id>.css           # 每款游戏自己的样式，随游戏 chunk 按需加载
   components/              # Critter（13 动物 + 5 心情）、ProfileForm、JournalView、MyData…
   lib/                     # api / storage / useRoom / router / sound / legal / consent
-  styles.css               # 单文件 ~5000 行，所有样式都在这里
-tests/unit/                # Vitest（含 _room.mjs 辅助）
-scripts/                   # smoke / visual / prod-check / backup / check-games / new-game / gen-assets
+  styles.css               # 共用样式（基础、大厅、房间、弹窗、结算、通用组件）
+tests/unit/<id>.test.mjs   # 每款游戏一份单测（+ 房间/存储）
+scripts/
+  smoke/<id>.mjs           # 每款游戏一份端到端
+  test-game.mjs            # 单游戏单测入口
+  ...                      # visual / prod-check / backup / check-games / new-game / gen-assets
 public/                    # manifest、sw.js、icons、og.png、robots.txt、sitemap.xml
 docs/                      # ROADMAP / DEPLOY / BACKUP + 截图
 ```
@@ -186,13 +192,17 @@ ws.send(JSON.stringify({ type: "auth", token }));
 
 ## 5. 加/改游戏（最核心的约定）
 
-一款游戏 = 三个同名文件，文件名就是 id（kebab-case）：
+一款游戏 = 一组同名文件，文件名就是 id（kebab-case），互不共享题库/样式：
 
 | 文件 | 内容 | 约定 |
 | --- | --- | --- |
-| `shared/games.json` | 元数据 | 追加 `id/name/emoji/tagline/intro/rules/tags/duration/net/gradient/settings`；`settings` 只支持 `select/multi/text` |
-| `server/games/<id>.mjs` | 服务端规则 | **默认导出** `{create, action, tick?, summary?}`；命名导出会被自动发现器忽略（还会报错） |
-| `src/games/<id>.tsx` | 客户端界面 | 必须 `export const Stage`；可选 `export const ResultExtra` |
+| `shared/games/<id>.json` | 元数据 | `order/name/emoji/tagline/intro/rules/tags/duration/net/gradient/settings`；`settings` 只支持 `select/multi/text` |
+| `server/games/<id>.mjs` | 服务端规则 | **默认导出** `{create, action, tick?, summary?, view?}`；命名导出会被自动发现器忽略（还会报错） |
+| `server/games/_<id>.*.mjs` | 题库 / 数值 | 下划线开头，自动发现器跳过；只被本游戏 import |
+| `src/games/<id>.tsx` + `.css` | 客户端界面 + 样式 | 必须 `export const Stage`；可选 `export const ResultExtra`；CSS 由 tsx import |
+| `tests/unit/<id>.test.mjs` | 单测 | `npm run test:game -- <id>` |
+| `scripts/smoke/<id>.mjs` | 端到端 | 默认导出 `run(ctx)`；`npm run smoke:game -- <id>` |
+| `docs/games/<id>.md` | 单游戏说明 | 只读这一篇就能改这款游戏 |
 
 规则模块契约：
 
@@ -201,16 +211,17 @@ create(room) -> data            // 可 JSON 序列化，必须含 phase
 action(room, seat, action, now) -> null | "给玩家看的错误串"
 tick(room, now) -> boolean      // 可选；返回 true 触发广播
 summary(room) -> { title, detail, data? }   // phase=over 时自动调用
+view(data, seat) -> data        // 可选；按座位隐藏信息（如猜词答案），broadcastState 会分别调用
 ```
 
 - 结算页由 `GameStageHost` 统一渲染：**Stage 里不要处理 `phase === 'over'`，也不要 import `GameResult`**（会破坏按需拆包）。
 - `StageProps = { room, seat, game, meta, act, send, now, subscribe }`。
 - 胜场统计统一用 `_kit.mjs` 的 `gameWins(room, id)`，别自己造字段。
-- 加完游戏要同步：`shared/games.json`、`scripts/smoke.mjs`（否则 CI 不覆盖）、可选 `tests/unit/<id>.test.mjs`。
-- 脚手架：`npm run new:game -- my-game 我的游戏 🎲 #fff #000`；构建前 `check-games.mjs` 会校验三件套齐全。
+- 每款游戏独立开发：只读 `docs/games/<id>.md`，用 `npm run test:game -- <id>` / `npm run smoke:game -- <id>` 验证，不需要跑全量。
+- 脚手架：`npm run new:game -- my-game 我的游戏 🎲 #fff #000`；构建前 `check-games.mjs` 会校验元数据、服务端、客户端、单测、冒烟模块齐全。
 
 现有 7 款：`talk-cards` 深夜聊天卡、`draw-guess` 你画我猜、`mind-meld` 心有灵犀、`know-me` 你懂我吗、
-`gomoku` 爱心五子棋、`checkers` 爱心跳棋、`brothers` 哥俩好（双人协作跳桥，轮流蓄力，掉下去挂绳可救援）。
+`gomoku` 爱心五子棋、`checkers` 爱心跳棋、`brothers` 哥俩好（双人实时协作跳桥，各自蓄力，掉下去挂绳、可被拉回）。
 
 ---
 

@@ -1,4 +1,4 @@
-import { words } from "../content/words.mjs";
+import { words } from "./_draw-guess.words.mjs";
 
 function norm(s) {
   return String(s || "")

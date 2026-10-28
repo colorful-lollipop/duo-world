@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./checkers.css";
 import type { ResultExtraProps, StageProps } from "./types";
 import { Critter } from "../components/Critter";
 import { Modal } from "../components/Modal";

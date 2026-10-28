@@ -1,0 +1,123 @@
+/* 只属于「五子棋」的样式。由 gomoku.tsx import，随游戏 chunk 按需加载。 */
+
+/* ================= 五子棋 ================= */
+
+.gomoku-stage {
+  max-width: 780px;
+}
+
+.gomoku-board-wrap {
+  width: min(100%, 560px, calc(100dvh - 320px));
+  margin: 0 auto;
+  background: linear-gradient(145deg, #e8c184, #f3d9a7);
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 4px 0 rgba(58, 38, 24, 0.18);
+}
+
+.gomoku-board {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  aspect-ratio: 1;
+  background: #f3d9a7;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gomoku-cell {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.gomoku-cell::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 0.75px);
+  height: 1.5px;
+  background: rgba(150, 104, 50, 0.62);
+}
+
+.gomoku-cell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 0.75px);
+  width: 1.5px;
+  background: rgba(150, 104, 50, 0.62);
+}
+
+.gomoku-cell:disabled {
+  cursor: default;
+}
+
+.gomoku-board.my-turn .gomoku-cell:not(:disabled):hover .stone.ghost {
+  opacity: 0.55;
+}
+
+.stone {
+  position: absolute;
+  inset: 6.5%;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  z-index: 1;
+  box-shadow: inset -2px -3px 0 rgba(0, 0, 0, 0.15), inset 2px 2px 0 rgba(255, 255, 255, 0.28);
+  animation: stone-in 0.16s ease;
+}
+
+.stone.ghost {
+  opacity: 0.28;
+  border-style: dashed;
+}
+
+.gomoku-cell.last-move .stone.placed::after {
+  content: "";
+  position: absolute;
+  inset: 34%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(58, 38, 24, 0.35);
+}
+
+.gomoku-cell.winning .stone {
+  border-color: #ffd23f;
+  box-shadow: 0 0 0 2px #fff, 0 0 14px 4px rgba(255, 210, 63, 0.75);
+  animation: win-pulse 1.2s ease-in-out infinite;
+}
+
+.gomoku-cell.previewing .stone.ghost {
+  opacity: 0.5;
+}
+
+.mini-board {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 3px 0 rgba(58, 38, 24, 0.16);
+  max-width: 46vw;
+  height: auto;
+}
+
+@media (max-width: 720px) {
+.gomoku-board-wrap {
+    padding: 6px;
+  }
+.mini-board {
+    max-width: 62vw;
+  }
+}
+
+@keyframes win-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.25);
+  }
+}

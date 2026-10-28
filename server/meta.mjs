@@ -1,7 +1,30 @@
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const metaUrl = new URL("../shared/games.json", import.meta.url);
-export const GAMES = JSON.parse(fs.readFileSync(metaUrl, "utf8"));
+// 元数据约定：每个游戏一份 shared/games/<id>.json，文件名就是游戏 id。
+// 没有中央登记表：新增游戏时写一个文件即可，这里按 order 字段排序成大厅顺序。
+const here = path.dirname(fileURLToPath(import.meta.url));
+const gamesDir = path.resolve(here, "../shared/games");
+
+function readGameMeta(file) {
+  const id = file.slice(0, -".json".length);
+  const raw = JSON.parse(fs.readFileSync(path.join(gamesDir, file), "utf8"));
+  if (!id || raw.id !== undefined || /^[a-z][a-z0-9-]*$/.test(id) !== true) {
+    throw new Error(`[meta] ${file} 的游戏 id 不合法：文件名必须是 kebab-case，且不要放 id 字段`);
+  }
+  return { id, order: Number(raw.order) || 0, ...raw };
+}
+
+const files = fs
+  .readdirSync(gamesDir)
+  .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
+  .sort();
+
+export const GAMES = files
+  .map(readGameMeta)
+  .sort((a, b) => a.order - b.order);
+
 export const GAME_MAP = Object.fromEntries(GAMES.map((g) => [g.id, g]));
 
 export function defaultSettings(gameId) {

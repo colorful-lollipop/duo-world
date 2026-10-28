@@ -1,0 +1,51 @@
+{
+  "order": 50,
+  "name": "爱心五子棋",
+  "emoji": "⚫",
+  "tagline": "五子连珠，输的人请奶茶",
+  "intro": "经典五子棋，配上一句小赌约。想悔棋得先问过 TA 同不同意，让不让就看感情啦。",
+  "rules": [
+    "轮流在棋盘上落子",
+    "横、竖、斜五子连成线就赢",
+    "悔棋和求和都需要 TA 同意"
+  ],
+  "tags": [
+    "对弈"
+  ],
+  "duration": "10 分钟",
+  "net": "延迟友好",
+  "gradient": [
+    "#97E8B6",
+    "#38B872"
+  ],
+  "settings": [
+    {
+      "type": "select",
+      "key": "first",
+      "label": "谁先手",
+      "default": "房主",
+      "options": [
+        {
+          "value": "房主",
+          "label": "房主"
+        },
+        {
+          "value": "TA",
+          "label": "TA"
+        },
+        {
+          "value": "随机",
+          "label": "随机"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "key": "wager",
+      "label": "小赌约",
+      "default": "请对方喝一杯奶茶",
+      "maxLength": 30,
+      "placeholder": "请喝奶茶 / 洗一次碗 / 做一顿饭"
+    }
+  ]
+}

@@ -97,7 +97,7 @@
 - 插件式游戏架构：
   - `server/games/index.mjs` 自动发现并校验 `server/games/<id>.mjs`
   - `src/games/registry.ts` 按需加载（code splitting）`src/games/<id>.tsx`
-  - `shared/games.json` 一份元数据驱动大厅、设置、结算与校验
+  - `shared/games/<id>.json` 每款游戏一份元数据驱动大厅、设置、结算与校验
   - 结算页由 `GameStageHost` 统一渲染，游戏通过 `ResultExtra` 提供补充内容
 - 新游戏：**爱心跳棋**（8×8 西洋跳棋：斜走、跳吃、连跳、升王、求和、认输）
 - 脚手架与校验：

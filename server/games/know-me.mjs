@@ -1,4 +1,4 @@
-import { questions } from "../content/questions.mjs";
+import { questions } from "./_know-me.questions.mjs";
 
 function shuffle(arr) {
   const a = arr.slice();

@@ -1,6 +1,6 @@
 // 模板：新游戏的服务端规则。
 // 复制成 server/games/<id>.mjs 就会被自动加载（文件名 = 游戏 id），
-// 同时要在 shared/games.json 里登记元数据，并在 src/games/<id>.tsx 放界面。
+// 同时要在 shared/games/<id>.json 里放元数据，并在 src/games/<id>.tsx 放界面（CSS 写 src/games/<id>.css）。
 //
 // 约定：默认导出 { create, action }（必填），tick / summary（可选）。
 // - create(room)     返回可 JSON 序列化的 game.data

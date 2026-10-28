@@ -1,5 +1,5 @@
 // 模板：新游戏的界面。
-// 复制成 src/games/<id>.tsx（文件名 = 游戏 id，与 shared/games.json 一致）。
+// 复制成 src/games/<id>.tsx（文件名 = 游戏 id，与 shared/games/<id>.json 一致）。
 // Vite 会把它拆成独立 chunk，只有开局才下载这一款游戏的代码。
 //
 // 导出约定：

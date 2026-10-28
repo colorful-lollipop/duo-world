@@ -55,7 +55,7 @@ export function GameStageHost(props: GameStageHostProps) {
       <div className="stage game-loading">
         <span className="game-loading-emoji">🧩</span>
         <h2>这个游戏没有登记</h2>
-        <p className="muted">shared/games.json 里找不到 {game.id}，检查一下构建产物是不是旧版本。</p>
+        <p className="muted">{"shared/games/<id>.json 里找不到 "}{game.id}，检查一下构建产物是不是旧版本。</p>
         <button className="secondary" onClick={onExit}>
           <Icon name="home" size={17} /> 回大厅
         </button>

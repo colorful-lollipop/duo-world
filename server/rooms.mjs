@@ -217,7 +217,7 @@ export function detachSocket(room, seat, ws) {
   }
 }
 
-export function snapshot(room, { includeInk = false } = {}) {
+export function snapshot(room, { includeInk = false, seat = -1 } = {}) {
   let game = null;
   if (room.game) {
     const data = room.game.data;
@@ -225,6 +225,11 @@ export function snapshot(room, { includeInk = false } = {}) {
     if (room.game.id === "draw-guess" && !includeInk) {
       const { strokes, ...rest } = data;
       wireData = { ...rest, strokeCount: strokes.length };
+    }
+    // 游戏可以按座位藏信息；view 拿到的是已经处理好 ink 的 wireData，返回浅拷贝即可。
+    const mod = games[room.game.id];
+    if (seat >= 0 && typeof mod?.view === "function") {
+      wireData = mod.view(wireData, seat) || wireData;
     }
     game = {
       id: room.game.id,
@@ -253,9 +258,12 @@ export function snapshot(room, { includeInk = false } = {}) {
 }
 
 export function broadcastState(room) {
-  const payload = JSON.stringify({ type: "state", state: snapshot(room) });
-  for (const s of room.seats) {
-    if (s.ws && s.ws.readyState === 1) s.ws.send(payload);
+  // 每个座位可能看到不同的 game.data（例如你画我猜不能把答案/候选词发给猜的人）。
+  for (let seat = 0; seat < room.seats.length; seat++) {
+    const s = room.seats[seat];
+    if (s.ws && s.ws.readyState === 1) {
+      s.ws.send(JSON.stringify({ type: "state", state: snapshot(room, { seat }) }));
+    }
   }
 }
 

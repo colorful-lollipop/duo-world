@@ -1,0 +1,83 @@
+{
+  "order": 20,
+  "name": "你画我猜",
+  "emoji": "🎨",
+  "tagline": "你画 TA 猜，画得越抽象笑得越大声",
+  "intro": "两人轮流当画手。猜中了，两个人一起得分。词库里有恋爱专属词，也有些日常到不能再日常的东西——看看你们能把它画成什么样。",
+  "rules": [
+    "轮流当画手，从三个词里挑一个",
+    "限时内画出来，TA 在下面输入答案",
+    "猜中一起得分，越快分越高"
+  ],
+  "tags": [
+    "合作"
+  ],
+  "duration": "10 分钟",
+  "net": "延迟友好",
+  "gradient": [
+    "#FFCB6B",
+    "#FF9A3C"
+  ],
+  "settings": [
+    {
+      "type": "select",
+      "key": "rounds",
+      "label": "轮数",
+      "default": 6,
+      "options": [
+        {
+          "value": 4,
+          "label": "4 轮"
+        },
+        {
+          "value": 6,
+          "label": "6 轮"
+        },
+        {
+          "value": 8,
+          "label": "8 轮"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "key": "seconds",
+      "label": "每轮时长",
+      "default": 80,
+      "options": [
+        {
+          "value": 60,
+          "label": "60 秒"
+        },
+        {
+          "value": 80,
+          "label": "80 秒"
+        },
+        {
+          "value": 100,
+          "label": "100 秒"
+        }
+      ]
+    },
+    {
+      "type": "multi",
+      "key": "libraries",
+      "label": "词库",
+      "default": [
+        "日常",
+        "恋爱"
+      ],
+      "min": 1,
+      "options": [
+        {
+          "value": "日常",
+          "label": "日常"
+        },
+        {
+          "value": "恋爱",
+          "label": "恋爱"
+        }
+      ]
+    }
+  ]
+}

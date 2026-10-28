@@ -10,7 +10,7 @@
 
 - [ ] `npm run build` 通过（含 `check:games` 结构校验）
 - [ ] `npm run smoke` 通过（所有游戏端到端）
-- [ ] 新游戏已在 `shared/games.json`、`server/games/<id>.mjs`、`src/games/<id>.tsx` 三处就位
+- [ ] 新游戏已在 `shared/games/<id>.json`、`server/games/<id>.mjs`、`src/games/<id>.{tsx,css}`、`tests/unit/<id>.test.mjs`、`scripts/smoke/<id>.mjs` 就位
 - [ ] 相关文档（README / CHANGELOG）已更新
 
 ## 截图（可选）

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import "./draw-guess.css";
 import type { ResultExtraProps, StageProps } from "./types";
 import { Modal } from "../components/Modal";
 import { Icon } from "../components/Icon";

@@ -1,0 +1,289 @@
+/* 只属于「你懂我吗」的样式。由 know-me.tsx import，随游戏 chunk 按需加载。 */
+
+.progress-track span {
+  background: linear-gradient(90deg, #ff9ab5, #ff4d6a);
+}
+
+/* ================= 你懂我吗 ================= */
+
+.know-stage {
+  max-width: 760px;
+}
+
+.question-board {
+  text-align: center;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.9), transparent 46%),
+    linear-gradient(135deg, #fff5f8, #ffe3eb);
+  border: 1.5px solid rgba(201, 54, 79, 0.2);
+  border-radius: 20px;
+  padding: 14px 18px 12px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.question-hero {
+  margin: -44px auto 2px;
+  filter: drop-shadow(0 4px 0 rgba(58, 38, 24, 0.1));
+}
+
+.question-board h2 {
+  font-size: clamp(19px, 2.8vw, 25px);
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.question-board .muted {
+  font-size: 12px;
+  margin: 0;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.choice-grid .choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 11px 12px;
+}
+
+.choice-grid .choice > span {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  background: #fff8e1;
+  border: 1.5px solid rgba(58, 38, 24, 0.18);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.choice-grid .choice.selected {
+  border-color: #c9364f;
+  background: #fff0f4;
+  box-shadow: 0 2px 0 rgba(201, 54, 79, 0.18);
+}
+
+.choice-grid .choice.selected > span {
+  background: #c9364f;
+  color: #fff;
+  border-color: #c9364f;
+}
+
+.range-answer {
+  display: block;
+  text-align: center;
+  background: #fff8e1;
+  border: 1.5px solid rgba(58, 38, 24, 0.16);
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.range-answer > strong {
+  font-family: var(--display);
+  font-size: 32px;
+  line-height: 1;
+  display: block;
+  margin-bottom: 8px;
+  color: #c9364f;
+}
+
+.range-answer input[type="range"] {
+  width: 100%;
+  accent-color: #ff6b9a;
+  height: 26px;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.know-form .primary.wide {
+  margin-top: 2px;
+}
+
+.answer-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.answer-pair article {
+  border: 2px solid rgba(58, 38, 24, 0.18);
+  border-radius: 18px;
+  padding: 11px 13px;
+  min-width: 0;
+}
+
+.answer-pair article.truth {
+  background: #fff0f4;
+  border-color: rgba(201, 54, 79, 0.35);
+}
+
+.answer-pair article.guess {
+  background: #f1f8ff;
+  border-color: rgba(77, 157, 255, 0.35);
+}
+
+.answer-pair header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.answer-pair header .critter {
+  margin: -7px 0;
+}
+
+.answer-pair small {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+
+.answer-pair strong {
+  display: block;
+  font-size: 18px;
+  font-family: var(--display);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.answer-pair strong.long {
+  font-size: 14px;
+  font-family: var(--body);
+  font-weight: 700;
+}
+
+.scale-answer-mini {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 8.5px;
+  color: var(--ink-3);
+}
+
+.scale-answer-mini i {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff9ab5, #ff4d6a);
+  min-width: 2px;
+  max-width: calc(100% - 60px);
+}
+
+.grade-box {
+  text-align: center;
+  background: #fff8e1;
+  border: 1.5px dashed rgba(58, 38, 24, 0.2);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.grade-box p {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.grade-box .button-row {
+  justify-content: center;
+}
+
+.grade-box .secondary {
+  font-size: 12px;
+  padding: 8px 13px;
+}
+
+.know-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #eefaf1;
+  border: 1.5px solid rgba(47, 157, 112, 0.28);
+  border-radius: 16px;
+  padding: 10px 14px;
+}
+
+.last-score {
+  font-size: 14px;
+  font-weight: 900;
+  color: #1d7a43;
+}
+
+.compat-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.compat-ring {
+  --pct: 0;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: conic-gradient(#ff6b9a calc(var(--pct) * 1%), #f3e6d6 0);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.compat-ring::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px dashed rgba(58, 38, 24, 0.16);
+}
+
+.compat-ring strong,
+.compat-ring span {
+  position: relative;
+  z-index: 1;
+}
+
+.compat-ring strong {
+  font-family: var(--display);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.compat-ring span {
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+.compat-score > p {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+.choice-grid {
+    grid-template-columns: 1fr;
+  }
+.answer-pair {
+    grid-template-columns: 1fr;
+  }
+}

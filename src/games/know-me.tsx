@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./know-me.css";
 import type { ResultExtraProps, StageProps } from "./types";
 import { answerText } from "./types";
 import { Critter } from "../components/Critter";

@@ -1,4 +1,4 @@
-import { cardsForDeck } from "../content/talkCards.mjs";
+import { cardsForDeck } from "./_talk-cards.deck.mjs";
 
 function pickCard(data) {
   const pool = cardsForDeck(data.deck);
