@@ -21,9 +21,13 @@ try {
 
   const ctxA = await browser.newContext({ viewport: { width: 420, height: 900 } });
   const A = await ctxA.newPage();
+  let expectForbidden = false;
   A.on("pageerror", (e) => problems.push("A pageerror: " + e.message));
   A.on("console", (m) => {
-    if (m.type() === "error") problems.push("A console: " + m.text());
+    if (m.type() !== "error") return;
+    // 故意用错 token 打接口时，浏览器会把 403 记成 console error，属预期
+    if (expectForbidden && /status of 403/.test(m.text())) return;
+    problems.push("A console: " + m.text());
   });
   A.on("requestfailed", (r) => problems.push("A requestfailed: " + r.url()));
 
@@ -45,6 +49,25 @@ try {
     return reg ? "registered:" + (reg.active ? "active" : "pending") : "not-registered";
   });
   console.log("service worker:", sw);
+
+  // 协议页面（SPA 路由 + CSP 下能正常渲染）
+  await A.goto(BASE + "/terms", { waitUntil: "networkidle" });
+  await A.waitForSelector(".legal-page h1", { timeout: 15000 });
+  const termsTitle = await A.locator(".legal-page h1").innerText();
+  console.log("terms:", termsTitle);
+  if (!termsTitle.includes("用户协议")) problems.push("用户协议页没渲染");
+  await A.goto(BASE + "/privacy", { waitUntil: "networkidle" });
+  await A.waitForSelector(".legal-page h1", { timeout: 15000 });
+  const privacyTitle = await A.locator(".legal-page h1").innerText();
+  if (!privacyTitle.includes("隐私政策")) problems.push("隐私政策页没渲染");
+  const scrollable = await A.evaluate(() => ({
+    ih: window.innerHeight,
+    dh: document.documentElement.scrollHeight,
+  }));
+  if (scrollable.dh > scrollable.ih + 2) problems.push("协议页出现页面级滚动: " + JSON.stringify(scrollable));
+
+  await A.goto(BASE + "/", { waitUntil: "networkidle" });
+  await A.waitForSelector(".home-screen");
 
   // 建小屋 → 第二个人加入 → 开局
   await A.getByRole("button", { name: "创建我们的小屋" }).click();
@@ -106,6 +129,39 @@ try {
   );
   console.log("history:", hist);
   if (hist.status !== 200) problems.push("history 接口异常: " + hist.status);
+
+  // 数据导出（同一 token）与未授权访问
+  expectForbidden = true;
+  const exp = await A.evaluate(
+    async ({ c, t }) => {
+      const ok = await fetch(`/api/rooms/${c}/export`, { headers: { Authorization: "Bearer " + t } });
+      const okBody = await ok.json().catch(() => null);
+      const bad = await fetch(`/api/rooms/${c}/export`, { headers: { Authorization: "Bearer nope" } });
+      return {
+        status: ok.status,
+        entries: Array.isArray(okBody?.entries) ? okBody.entries.length : -1,
+        seats: Array.isArray(okBody?.seats) ? okBody.seats.length : -1,
+        bad: bad.status,
+      };
+    },
+    { c: code, t: token },
+  );
+  console.log("export:", exp);
+  if (exp.status !== 200) problems.push("export 接口异常: " + exp.status);
+  if (exp.bad !== 403) problems.push("export 未校验 token: " + exp.bad);
+  expectForbidden = false;
+
+  // 顺手用 DELETE 注销这间巡检小屋（既验证注销接口，也不给线上留垃圾数据）
+  const del = await A.evaluate(
+    async ({ c, t }) => {
+      const r = await fetch(`/api/rooms/${c}`, { method: "DELETE", headers: { Authorization: "Bearer " + t } });
+      const body = await r.json().catch(() => null);
+      return { status: r.status, ok: body?.ok === true };
+    },
+    { c: code, t: token },
+  );
+  console.log("delete:", del);
+  if (del.status !== 200 || !del.ok) problems.push("注销接口异常: " + JSON.stringify(del));
 
   await ctxA.close();
   await ctxB.close();
