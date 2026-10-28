@@ -1,19 +1,5 @@
 /* 只属于「哥俩好」的样式。由 brothers.tsx import，随游戏 chunk 按需加载。 */
 
-.tag {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: #f2e8cf;
-  color: var(--ink-2);
-}
-
-.tag.net {
-  background: #e3f4ff;
-  color: #2a6d94;
-}
-
 /* ================= 哥俩好 ================= */
 
 .brothers-stage {
@@ -24,14 +10,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 14px;
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
 
 .brothers-progress {
-  flex: 1;
-  min-width: 190px;
+  flex: 1 1 210px;
+  min-width: 170px;
 }
 
 .brothers-progress-bar {
@@ -50,6 +36,7 @@
   width: 0%;
   background: linear-gradient(90deg, #ffc93c, #ff6b6b);
   border-radius: 6px;
+  transition: width 0.25s ease;
 }
 
 .brothers-progress-bar b {
@@ -61,6 +48,7 @@
   background: #3a2618;
   border: 1px solid #fff;
   transform: translateX(-50%);
+  transition: left 0.25s ease;
 }
 
 .brothers-progress span {
@@ -71,9 +59,88 @@
   font-weight: 700;
 }
 
+.brothers-players {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.brother-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 190px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(58, 38, 24, 0.16);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.brother-chip .dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid #3a2618;
+}
+
+.brother-chip b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 78px;
+}
+
+.brother-chip em {
+  flex: none;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  color: #8a6b4f;
+  background: rgba(58, 38, 24, 0.08);
+  border-radius: 999px;
+  padding: 0 5px;
+}
+
+.brother-chip.me {
+  border-color: #e0a33a;
+  background: #fff6df;
+}
+
+.brother-chip.hang {
+  border-color: #cf5a44;
+  background: #fdecea;
+}
+
+.brother-chip.done {
+  border-color: #3f9b6b;
+  background: #eaf7ef;
+}
+
+.brother-chip .badge {
+  flex: none;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.4;
+  color: #fff;
+  background: #cf5a44;
+  border-radius: 999px;
+  padding: 1px 5px;
+}
+
+.brother-chip.done .badge {
+  background: #3f9b6b;
+}
+
 .brothers-stats {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   font-size: 13px;
   font-weight: 800;
   color: var(--ink-2);
@@ -89,6 +156,7 @@
 
 .brothers-stats .urgent {
   color: #e05b5b;
+  border-color: #e05b5b;
 }
 
 .brothers-world {
@@ -97,7 +165,7 @@
   border-radius: 18px;
   border: 2px solid var(--ink);
   background: linear-gradient(180deg, #fdf3e0 0%, #ffe9c8 58%, #ffd9a8 100%);
-  height: clamp(180px, calc(100dvh - 310px), 420px);
+  height: clamp(200px, calc(100dvh - 340px), 420px);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -113,8 +181,12 @@
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  box-shadow: inset 0 0 0 3px rgba(255, 201, 60, 0.55);
+  box-shadow: inset 0 0 0 3px rgba(255, 201, 60, 0.5);
   pointer-events: none;
+}
+
+.brothers-world.charging::after {
+  box-shadow: inset 0 0 0 3px rgba(255, 107, 107, 0.55);
 }
 
 .brothers-sky {
@@ -197,7 +269,7 @@
   height: 100%;
 }
 
-.brothers-turn {
+.brothers-status {
   position: absolute;
   left: 50%;
   top: 8px;
@@ -214,21 +286,75 @@
   border-radius: 999px;
   padding: 5px 14px;
   box-shadow: 0 2px 0 rgba(58, 38, 24, 0.14);
-  max-width: 92%;
+  max-width: calc(100% - 20px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
 }
 
-.brothers-turn.mine {
-  background: rgba(255, 235, 190, 0.96);
-  border-color: #e8a93c;
+.brothers-status.hang {
+  background: rgba(253, 236, 234, 0.96);
+  border-color: #cf5a44;
+  color: #8c2f2f;
 }
 
-.brothers-turn .spinner {
-  width: 12px;
-  height: 12px;
-  border-width: 2px;
+.brothers-pull {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 24px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 2px solid #3a2618;
+  background: #fff3cf;
+  color: #3a2618;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(58, 38, 24, 0.2);
+  animation: brothers-pull-pulse 1.6s ease-in-out infinite;
+}
+
+.brothers-pull:hover {
+  background: #ffe9b0;
+}
+
+.brothers-pull:active {
+  transform: translateX(-50%) translateY(1px);
+  box-shadow: 0 2px 0 rgba(58, 38, 24, 0.2);
+}
+
+.brothers-pull em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #7a5a3c;
+  background: rgba(58, 38, 24, 0.08);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.brothers-pull.cooling {
+  animation: none;
+  opacity: 0.68;
+  cursor: default;
+}
+
+.brothers-charge {
+  pointer-events: none;
+}
+
+.brothers-preview {
+  pointer-events: none;
 }
 
 .brothers-result {
@@ -258,11 +384,99 @@
   font-size: 17px;
 }
 
-/* 小屏上避免提示文字被右下角悬浮爱心盖住 */
+@keyframes brothers-pull-pulse {
+  0%,
+  100% {
+    box-shadow: 0 3px 0 rgba(58, 38, 24, 0.2), 0 0 0 0 rgba(255, 201, 60, 0.55);
+  }
+  50% {
+    box-shadow: 0 3px 0 rgba(58, 38, 24, 0.2), 0 0 0 7px rgba(255, 201, 60, 0);
+  }
+}
 
+/* 小屏上避免提示文字被右下角悬浮爱心盖住 */
 @media (max-width: 720px) {
-.brothers-stage .stage-hint {
+  .brothers-stage .stage-hint {
     padding-right: 48px;
     text-align: left;
+  }
+
+  .brothers-hud {
+    gap: 6px 10px;
+  }
+
+  .brothers-world {
+    height: clamp(190px, calc(100dvh - 350px), 380px);
+  }
+
+  .brother-chip {
+    max-width: 164px;
+    font-size: 11.5px;
+    padding: 2px 8px;
+  }
+
+  .brother-chip b {
+    max-width: 62px;
+  }
+
+  .brothers-stats {
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .brothers-stats span {
+    padding: 3px 8px;
+  }
+
+  .brothers-status {
+    font-size: 12px;
+    padding: 4px 11px;
+  }
+
+  .brothers-pull {
+    bottom: 10px;
+    padding: 7px 13px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .brothers-stage {
+    padding: 8px 8px 6px;
+  }
+
+  .brothers-progress span {
+    font-size: 11px;
+  }
+
+  .brother-chip em {
+    display: none;
+  }
+
+  .brother-chip b {
+    max-width: 54px;
+  }
+
+  .brothers-stats {
+    font-size: 11px;
+  }
+
+  .brothers-stats span {
+    padding: 2px 7px;
+  }
+
+  .brothers-status {
+    font-size: 11px;
+    padding: 3px 9px;
+  }
+
+  .brothers-pull {
+    font-size: 11.5px;
+    padding: 6px 11px;
+    gap: 5px;
+  }
+
+  .brothers-pull em {
+    font-size: 9.5px;
   }
 }
