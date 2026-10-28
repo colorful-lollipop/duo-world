@@ -302,6 +302,7 @@ node scripts/visual.mjs        # Chrome 不在默认路径时设置 CHROME_PATH
 
 欢迎 Issue / PR：
 
+- 接手维护先读 [HANDOVER.md](HANDOVER.md)（架构、部署、踩坑与发布流程都在里面）
 - 阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - 新游戏请使用 `npm run new:game`
 - 提交前跑 `npm run build` 和 `npm run smoke`
