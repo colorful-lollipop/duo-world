@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import knowMe from "../../server/games/know-me.mjs";
+import { questions } from "../../server/games/_know-me.questions.mjs";
 import { makeRoom, startGame } from "./_room.mjs";
 
 // 把 Math.random 固定成 0，让题目抽取顺序确定（否则 shuffle 随机，用例不确定）。
@@ -11,9 +12,10 @@ afterAll(() => {
 });
 
 function newGame(settings = {}) {
+  // 题库扩大后，用 5 题的小样本覆盖完整的 5 轮流程；分类抽取单独用 8 题验证。
   const room = makeRoom({
     gameId: "know-me",
-    settings: { "know-me": { count: 8, categories: ["吃喝"], ...settings } },
+    settings: { "know-me": { count: 5, categories: ["吃喝"], ...settings } },
   });
   const d = startGame(room);
   return { room, d };
@@ -153,6 +155,59 @@ describe("你懂我吗 · 给分与推进", () => {
     expect(d.phase).toBe("over");
     expect(d.score).toBe(30); // 5 + 5 + 10 + 0 + 10
     expect(d.history).toHaveLength(5);
+  });
+});
+
+describe("你懂我吗 · 题库完整性", () => {
+  const CATEGORIES = ["吃喝", "习惯", "回忆", "恋爱", "假如", "未来"];
+
+  it("id 唯一，分类和题型合法", () => {
+    expect(questions.length).toBeGreaterThanOrEqual(120);
+    expect(new Set(questions.map((q) => q.id)).size).toBe(questions.length);
+    for (const q of questions) {
+      expect(CATEGORIES).toContain(q.category);
+      expect(["choice", "scale", "text"]).toContain(q.type);
+      expect(typeof q.text).toBe("string");
+      expect(q.text.length).toBeGreaterThan(0);
+      expect(q.text.length).toBeLessThanOrEqual(120);
+    }
+  });
+
+  it("每种题型字段完整", () => {
+    for (const q of questions) {
+      if (q.type === "choice") {
+        expect(Array.isArray(q.options)).toBe(true);
+        expect(q.options.length).toBeGreaterThanOrEqual(2);
+        expect(q.options.every((o) => typeof o === "string" && o.length > 0)).toBe(true);
+      } else if (q.type === "scale") {
+        expect(typeof q.left).toBe("string");
+        expect(typeof q.right).toBe("string");
+        expect(q.left.length).toBeGreaterThan(0);
+        expect(q.right.length).toBeGreaterThan(0);
+      } else {
+        expect(q.options ?? null).toBeNull();
+        expect(q.left ?? null).toBeNull();
+        expect(q.right ?? null).toBeNull();
+      }
+    }
+  });
+
+  it("六个分类每类至少 18 道，题型比例大致均衡", () => {
+    for (const cat of CATEGORIES) {
+      const list = questions.filter((q) => q.category === cat);
+      expect(list.length).toBeGreaterThanOrEqual(18);
+      for (const type of ["choice", "scale", "text"]) {
+        expect(list.filter((q) => q.type === type).length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("create 只抽设置里的分类，数量与设置一致", () => {
+    const { d } = newGame({ count: 8, categories: ["吃喝", "习惯"] });
+    expect(d.total).toBe(8);
+    expect(d.questions).toHaveLength(8);
+    expect(d.questions.every((q) => ["吃喝", "习惯"].includes(q.category))).toBe(true);
+    expect(new Set(d.questions.map((q) => q.id)).size).toBe(8);
   });
 });
 

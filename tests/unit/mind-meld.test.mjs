@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import mindMeld from "../../server/games/mind-meld.mjs";
+import { pickPrompts, prompts } from "../../server/games/_mind-meld.prompts.mjs";
 import { makeRoom, startGame } from "./_room.mjs";
 
 function newGame(settings = {}) {
@@ -111,6 +112,48 @@ describe("心有灵犀 · 轮次推进", () => {
     expect(submit(room, 1, "海")).toBeNull();
     expect(d.phase).toBe("reveal");
     expect(submit(room, 0, "火")).toBe("这一轮已经揭晓啦");
+  });
+});
+
+describe("心有灵犀 · 灵感词库", () => {
+  it("词库不少于 120 个且互不重复", () => {
+    expect(prompts.length).toBeGreaterThanOrEqual(120);
+    expect(new Set(prompts).size).toBe(prompts.length);
+  });
+
+  it("pickPrompts 抽 count 个、互不重复，并排除历史词", () => {
+    const history = prompts.slice(0, 10).map((p) => ({ a: p, b: p }));
+    const picked = pickPrompts(history, 6, () => 0);
+    expect(picked).toHaveLength(6);
+    expect(new Set(picked).size).toBe(6);
+    for (const p of picked) {
+      const used = new Set(history.flatMap((h) => [h.a, h.b]));
+      expect(used.has(p)).toBe(false);
+    }
+  });
+
+  it("历史词用光后回退到全库，仍返回 count 个不重复的词", () => {
+    const history = prompts.map((p) => ({ a: p, b: p }));
+    const picked = pickPrompts(history, 6, () => 0);
+    expect(picked).toHaveLength(6);
+    expect(new Set(picked).size).toBe(6);
+    expect(picked.every((p) => prompts.includes(p))).toBe(true);
+  });
+
+  it("开局下发 6 个灵感词，进入下一轮时刷新且不含词链里的词", () => {
+    const { room, d } = newGame();
+    expect(d.prompts).toHaveLength(6);
+    expect(new Set(d.prompts).size).toBe(6);
+
+    const [first, second] = d.prompts;
+    submit(room, 0, first);
+    submit(room, 1, second);
+    expect(act(room, 0, { type: "next" })).toBeNull();
+
+    expect(d.round).toBe(1);
+    expect(d.prompts).toHaveLength(6);
+    const used = new Set(d.history.flatMap((h) => [h.a, h.b]));
+    expect(d.prompts.every((p) => !used.has(p))).toBe(true);
   });
 });
 

@@ -41,7 +41,12 @@
 
 ## 题库
 
-`_know-me.questions.mjs` 导出 `questions` 数组；字段：`{ id, category, type, text, options?, left?, right? }`。分类要同时出现在 `shared/games/know-me.json` 的 `categories` 选项里，否则筛不到。
+`_know-me.questions.mjs` 导出 `questions` 数组；字段：`{ id, category, type, text, options?, left?, right? }`。
+
+- 目前共 **126 道**，六个分类（吃喝 / 习惯 / 回忆 / 恋爱 / 假如 / 未来）各 21 道。
+- 每个分类里 `choice` / `scale` / `text` 各 7 道，整体比例均衡。
+- `id` 全局唯一；`choice` 至少 2 个 `options`，`scale` 必须同时有 `left` / `right`，`text` 题目不超过 120 字。
+- 分类要同时出现在 `shared/games/know-me.json` 的 `categories` 选项里，否则筛不到。
 
 ## 坑点
 
