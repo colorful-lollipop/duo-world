@@ -191,7 +191,7 @@ export const Stage = ({ room, seat, game, act, now }: StageProps) => {
   }, [d.mon, d.lastJump, serverNow]);
 
   const hangSway = Math.sin(beat / 190) * 7;
-  const chargePower = chargeStart ? Math.min(1, (beat - chargeStart) / CHARGE_MS) : 0;
+  const chargePower = chargeStart ? Math.max(0, Math.min(1, (beat - chargeStart) / CHARGE_MS)) : 0;
   const progress = Math.max(0, Math.min(1, d.distance / Math.max(1, d.finishX)));
   const secondsLeft = Math.max(0, Math.round((d.deadline - serverNow) / 1000));
 
