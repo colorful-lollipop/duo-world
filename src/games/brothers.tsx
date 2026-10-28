@@ -233,7 +233,7 @@ interface Vis {
   jumping: boolean;
 }
 
-export const Stage = ({ room, seat, game, act, now }: StageProps) => {
+const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
   const d = game.data as BrothersData;
   const tuning = d.tuning;
   const beat = useBeat();
@@ -837,6 +837,20 @@ function stageHint(d: BrothersData, mine: Monkey, mate: Monkey) {
   if (d.pulls > 0) return `已经互救 ${d.rescued} 次了，保持这个节奏，一起走到终点。`;
   return "轻点是小跳，长按才跳远；蓄力时看绿色的落点圈，变成红色就说明会掉下去。";
 }
+
+// 旧版本（1.4 之前）的房间数据没有 tuning/lastJump 数组；给一个友好提示，避免整块游戏区崩溃。
+export const Stage = (props: StageProps) => {
+  const d = props.game.data as BrothersData | null;
+  if (!d?.tuning || !Array.isArray(d.lastJump)) {
+    return (
+      <section className="stage brothers-stage">
+        <h2>这一局是旧版本</h2>
+        <p className="muted">哥俩好已经升级成实时玩法，点右上角「回大厅」重开一局就好啦。</p>
+      </section>
+    );
+  }
+  return <BrothersStage {...props} />;
+};
 
 export const ResultExtra = ({ room, seat, game }: ResultExtraProps) => {
   const d = game.data as BrothersData;

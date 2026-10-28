@@ -14,7 +14,7 @@ npm run smoke      # 端到端：起测试服务器(18790) → 双客户端跑�
 npm run smoke:game -- <id>  # 只跑一款游戏的端到端（端口可用 SMOKE_PORT 覆盖）
 npm run test       # Vitest 单测（tests/unit：各游戏规则 + store + rooms）
 npm run test:game -- <id>   # 只跑一款游戏的单测
-npm run check:games # 只做游戏四件套结构校验
+npm run check:games # 只做游戏结构校验
 npm run assets     # 重新生成 PWA 图标 / OG 图（scripts/gen-assets.mjs，需要本机 Chrome）
 npm run backup     # 数据备份（scripts/backup.mjs，先 checkpoint 再快照到 data/backups/）
 npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手架
@@ -42,7 +42,7 @@ npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手
 | `scripts/smoke/<id>.mjs` | 端到端 | 默认导出 `run(ctx)`；`npm run smoke:game -- <id>` 只跑它。 |
 | `docs/games/<id>.md` | 单游戏说明 | 数据形状、动作、坑点、测试命令；subagent 只读这一篇就能开工。 |
 
-- 三件套缺一不可：`scripts/check-games.mjs`（`npm run build` 前置步骤）会校验元数据 / 服务端 / 客户端 / 单测 / 冒烟模块，缺文件 / 缺 `export const Stage` / settings key 重复都会让构建失败。
+- 这套结构缺一不可：`scripts/check-games.mjs`（`npm run build` 前置步骤）会校验元数据 / 服务端 / 客户端 / 单测 / 冒烟模块，缺文件 / 缺 `export const Stage` / settings key 重复都会让构建失败。
 - 脚手架 `npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]` 会一次生成上面七个文件（含单测、冒烟、独立 CSS、单游戏文档），不需要手工登记。
 - 服务端规则：`create(room)` 返回可 JSON 序列化的 `game.data`；`action(room, seat, action, now)` 直接改 `room.game.data`，返回 `null`=成功、字符串=给玩家的错误；`data.phase === "over"` 时服务端自动调用 `summary()` 写纪念册。
 - 需要按座位藏信息（例如猜词答案、对手的候选词）时，在服务端导出 `view(data, seat)`，返回给该座位的浅拷贝；`broadcastState` 会对每个座位分别调用。不要只在客户端藏。
@@ -101,7 +101,7 @@ npm run build                   # 只在你准备合入前跑
 ## 仓库注意事项
 
 - `dist / node_modules / _shots / _ref / data` 都在 `.gitignore`，不要提交（`data/` 是运行时的 SQLite 与回退 JSON，属于用户数据）；`docs/` 里的截图是提交的。CI 在 main push / PR 上跑 Node 20 和 22 的 build + test + smoke。
-- 版本走 `npm version X.Y.Z --no-git-tag-version` + `CHANGELOG.md` 更新 + `git tag vX.Y.Z` + `gh release create`，当前版本 1.3.1。
+- 版本走 `npm version X.Y.Z --no-git-tag-version` + `CHANGELOG.md` 更新 + `git tag vX.Y.Z` + `gh release create`，当前版本 1.4.0。
 - 生产环境：`https://love.zulogic.cn`（服务器 `guan`，systemd 服务 `duo-world`，Node 在 `/opt/node22`，应用 `/opt/duo-world`，OpenResty vhost 反代到 127.0.0.1:8790，复用 `*.zulogic.cn` 通配符证书，`PUBLIC_URL=https://love.zulogic.cn`）。部署步骤看 `docs/DEPLOY.md`。
 - 文件含中文且是 UTF-8：**不要用 PowerShell 的 `Get-Content/Set-Content` 来回读写**（会破坏编码），用文件编辑工具。
 - 详细玩法、部署、扩展指南看 `README.md`；商业化路线图在 `docs/ROADMAP.md`；贡献流程看 `CONTRIBUTING.md`。

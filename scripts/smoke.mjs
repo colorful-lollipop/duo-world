@@ -22,7 +22,7 @@ import {
 
 const args = process.argv.slice(2);
 const onlyIndex = args.findIndex((a) => a === "--game" || a === "-g");
-const positional = args.find((a) => !a.startsWith("-") && args.indexOf(a) !== onlyIndex + 1);
+const positional = onlyIndex < 0 ? args.find((a) => !a.startsWith("-")) : null;
 const only = onlyIndex >= 0 ? args[onlyIndex + 1] : positional || null;
 if (onlyIndex >= 0 && !only) {
   console.error("用法：npm run smoke:game -- <game-id>");
@@ -83,6 +83,10 @@ try {
   const A = connect(ticketA);
   const B = connect(ticketB);
   await waitUntil(() => A.state && B.state, "initial states");
+  await waitUntil(
+    () => A.state.seats.every((s) => s.connected) && B.state.seats.every((s) => s.connected),
+    "presence broadcasts",
+  );
   assert(A.seat === 0 && B.seat === 1, "seats");
   assert(A.state.seats[0].connected && A.state.seats[1].connected, "presence");
   console.log("done: websocket welcome + presence");
