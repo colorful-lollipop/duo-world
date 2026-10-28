@@ -42,7 +42,18 @@
 
 ## 按座位隐藏（重要）
 
-服务端导出 `view(data, seat)`：非画手在 `choose / drawing` 阶段拿不到 `choices[].w` 和 `answer`，只拿到字数和分类提示；揭晓后才拿到答案。客户端也不能把候选词渲染给猜的人（用占位卡）。
+服务端导出 `view(data, seat)`，在 `snapshot()` 里调用，`broadcastState` 按座位分别下发：
+
+- **画手**（`seat === data.drawer`）：拿到完整 `data`，另外补一个 `answerLength`。
+- **猜的人**：`choices` 换成等长的占位项 `{ w: null, lib: "", lvl: 0 }`，任何阶段都不下发候选词文本；`answer` 只在 `reveal / over` 阶段有值，`choose / drawing` 阶段是 `null`。
+- 两种视角都能拿到 `answerLength`（按 Unicode 字符数 `Array.from(answer).length`），猜的人靠它显示「几个字」。
+- `view` 只返回浅拷贝，不修改 `data` 本体。
+
+客户端同样不能把候选词渲染给猜的人：选词阶段猜的人只看到 3 张「？」占位卡，提示语走 `answerLength` 而不是 `answer`。
+
+## 词库
+
+`server/games/_draw-guess.words.mjs` 当前 164 条，只用 `日常` / `恋爱` 两个 lib，`lvl` 1/2/3，每个 lib+lvl 至少 26 条；`w` 全局唯一。扩充时只追加新词条，不要改老词条（单测会校验数量、分布和唯一性）。
 
 ## 坑点
 

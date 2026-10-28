@@ -9,13 +9,31 @@ export default async function run({ A, B, waitUntil, assert }) {
     waitUntil,
     gameId: "draw-guess",
     settings: { rounds: 4, seconds: 60, libraries: ["日常"] },
-    ready: () => A.game()?.phase === "choose",
+    ready: () => A.game()?.phase === "choose" && B.game()?.phase === "choose",
   });
 
   assert(A.game().choices.length === 3, "three words");
+  // 猜的人拿不到候选词文本
+  assert(B.game().choices.length === 3, "guesser sees three placeholders");
+  assert(
+    B.game().choices.every((c) => !c.w),
+    "guesser cannot see candidate words",
+  );
+  assert(B.game().answer === null, "guesser cannot see answer before drawing");
+
   A.act({ type: "choose", index: 0 });
   await waitUntil(() => A.game().phase === "drawing" && B.game().phase === "drawing", "drawing started");
   const answer = A.game().answer;
+  assert(!!answer, "drawer sees answer");
+  assert(B.game().answer === null, "guesser still cannot see answer while drawing");
+  assert(
+    B.game().choices.every((c) => !c.w),
+    "guesser still cannot see candidate words while drawing",
+  );
+  assert(
+    B.game().answerLength === Array.from(answer).length,
+    "guesser only gets answer length",
+  );
 
   const strokeId = "test-stroke-1";
   A.send({ type: "ink", run: A.state.game.run, data: { op: "start", id: strokeId, color: "#F05267", size: 10 } });
@@ -30,9 +48,10 @@ export default async function run({ A, B, waitUntil, assert }) {
   B.act({ type: "guess", text: "nope" });
   await waitUntil(() => B.game().guesses.length === 1, "wrong guess");
   B.act({ type: "guess", text: answer });
-  await waitUntil(() => A.game().phase === "reveal", "draw reveal");
+  await waitUntil(() => A.game().phase === "reveal" && B.game().answer === answer, "draw reveal");
   assert(A.game().score > 0 && A.game().correct === true, "draw score");
   assert(A.game().guesses.some((g) => g.correct), "correct guess recorded");
+  assert(B.game().answer === answer, "guesser sees answer after reveal");
 
   A.act({ type: "next" });
   await waitUntil(() => A.game().round === 1 && A.game().phase === "choose", "draw round 2");

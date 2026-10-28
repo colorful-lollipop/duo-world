@@ -119,6 +119,22 @@
   color: var(--ink-3);
 }
 
+/* 猜的人在选词阶段看到的占位卡：不能泄露候选词 */
+.word-choice-hidden {
+  border-style: dashed;
+  background: #fbf6ea;
+  cursor: default;
+  pointer-events: none; /* 只是占位，不参与 hover/点击 */
+}
+
+.word-choice-hidden strong {
+  color: #c8b9a4;
+}
+
+.word-choice-hidden small {
+  letter-spacing: 0.05em;
+}
+
 .stars {
   color: #e3a64a;
   letter-spacing: 1px;
