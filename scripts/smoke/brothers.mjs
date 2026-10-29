@@ -100,5 +100,5 @@ export default async function run({ A, B, waitUntil, assert }) {
   const entry = await waitUntil(() => findJournal(A, "brothers"), "brothers journal");
   assert(entry.title === "哥俩好" && entry.data.finished === true, "brothers journal data");
   assert(entry.data.pulls >= 1 && entry.data.rescued >= 1, "brothers journal records rope rescue");
-  console.log("done: brothers realtime jump / preview data / rope fall / pull rescue / finish + journal");
+  console.log("done: brothers realtime jump / tuning data / rope fall / pull rescue / finish + journal");
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./brothers.css";
 import type { StageProps, ResultExtraProps } from "./types";
 import { Icon } from "../components/Icon";
@@ -80,43 +80,8 @@ const ARC = 84; // 跳跃弧线高度
 /** 世界坐标 → 「米」：一格平台大约 30px，看着更像真的走了几百米 */
 const METERS = 30;
 
-function platformAt(platforms: Platform[], x: number) {
-  for (const p of platforms) {
-    if (x >= p.x && x <= p.x + p.w) return p;
-  }
-  return null;
-}
-
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
-}
-
-interface Prediction {
-  fromX: number;
-  hold: number;
-  power: number;
-  dist: number;
-  to: number;
-  land: Platform | null;
-  safe: boolean;
-  finished: boolean;
-}
-
-/** 和服务器完全一致的落点预测（常量全部来自 d.tuning）。 */
-function predict(d: BrothersData, fromX: number, hold: number): Prediction {
-  const t = d.tuning;
-  const h = Math.max(0, Math.min(t.chargeMs, hold));
-  const power = h / t.chargeMs;
-  const dist = Math.round(t.jumpMin + (t.jumpMax - t.jumpMin) * power);
-  let to = fromX + dist;
-  let land = platformAt(d.platforms, to);
-  if (!land && to >= d.finishX) {
-    // 冲过头：和服务端一样，算踩到终点线
-    to = d.finishX;
-    land = platformAt(d.platforms, d.finishX);
-  }
-  const safe = !!land && !land.spike;
-  return { fromX, hold: h, power, dist, to, land, safe, finished: safe && to >= d.finishX };
 }
 
 /** 约 30fps 的重绘节拍，够顺滑又不至于把两核小机器烤热。 */
@@ -378,11 +343,6 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
 
   const charging = chargeStart !== null;
   const chargeHold = charging ? Math.max(0, Math.min(tuning.chargeMs, beat - chargeStart)) : 0;
-  const preview = useMemo(
-    () => (charging && mine.alive && !mine.finished ? predict(d, mine.x, chargeHold) : null),
-    [charging, d, mine.x, mine.alive, mine.finished, chargeHold],
-  );
-
   const progress = clamp01(d.distance / Math.max(1, d.finishX));
   const secondsLeft = Math.max(0, Math.round((d.deadline - serverNow) / 1000));
   const myColor = room.seats[seat]?.profile?.color || "#FF6B6B";
@@ -551,9 +511,6 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
               </g>
             );
           })}
-
-          {/* 落点预览：虚线抛物线 + 落点圈，绿=站得住，红=会掉 */}
-          {preview && <LandingPreview preview={preview} d={d} mine={mine} toX={toX} toY={toY} scale={scale} beat={beat} />}
 
           {/* 绳子 */}
           <path
@@ -727,115 +684,12 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
   );
 };
 
-function LandingPreview({
-  preview,
-  d,
-  mine,
-  toX,
-  toY,
-  scale,
-  beat,
-}: {
-  preview: Prediction;
-  d: BrothersData;
-  mine: Monkey;
-  toX: (x: number) => number;
-  toY: (y: number) => number;
-  scale: number;
-  beat: number;
-}) {
-  const fromX = toX(preview.fromX);
-  const fromY = toY(mine.y);
-  const onSpike = preview.land?.spike;
-  const fallY = onSpike ? preview.land!.y : mine.y - 34;
-  const endY = preview.safe ? toY(preview.land!.y) : toY(fallY);
-  const endX = toX(preview.to);
-  const ctrlX = (fromX + endX) / 2;
-  const ctrlY = Math.min(fromY, endY) - (34 + 62 * preview.power) * scale;
-  const color = preview.safe ? "#2E9E5B" : "#D84343";
-  const pulse = 1 + Math.sin(beat / 150) * 0.12;
-  return (
-    <g className="brothers-preview">
-      <path
-        d={`M${fromX} ${fromY} Q ${ctrlX} ${ctrlY} ${endX} ${endY}`}
-        fill="none"
-        stroke={color}
-        strokeWidth={Math.max(1.8, 2.4 * scale)}
-        strokeDasharray={`${6 * scale} ${5 * scale}`}
-        strokeLinecap="round"
-        opacity="0.9"
-      />
-      <circle
-        cx={endX}
-        cy={endY}
-        r={Math.max(6, 9 * scale) * pulse}
-        fill={preview.safe ? "rgba(76,195,138,0.22)" : "rgba(216,67,67,0.2)"}
-        stroke={color}
-        strokeWidth={Math.max(1.6, 2.2 * scale)}
-      />
-      <circle cx={endX} cy={endY} r={Math.max(1.5, 2.4 * scale)} fill={color} />
-      <text
-        x={endX}
-        y={endY - 14 * scale}
-        textAnchor="middle"
-        fontSize={Math.max(9, 10.5 * scale + 1)}
-        fontWeight={800}
-        fill={color}
-        stroke="#FFFCF2"
-        strokeWidth="2.6"
-        paintOrder="stroke"
-      >
-        {preview.safe ? `${(preview.dist / METERS).toFixed(1)}m` : "会掉"}
-      </text>
-      {!preview.safe && (
-        <path
-          d={`M${endX - 4 * scale} ${endY - 6 * scale} L${endX} ${endY - 1 * scale} L${endX + 4 * scale} ${endY - 6 * scale}`}
-          fill="none"
-          stroke={color}
-          strokeWidth={Math.max(1.4, 2 * scale)}
-          strokeLinecap="round"
-        />
-      )}
-      {preview.finished && (
-        <text
-          x={endX}
-          y={endY - 27 * scale}
-          textAnchor="middle"
-          fontSize={Math.max(9, 10.5 * scale + 1)}
-          fontWeight={800}
-          fill="#2E9E5B"
-          stroke="#FFFCF2"
-          strokeWidth="2.6"
-          paintOrder="stroke"
-        >
-          终点！
-        </text>
-      )}
-      {preview.hold >= d.tuning.chargeMs - 2 && (
-        <text
-          x={endX}
-          y={endY - 40 * scale}
-          textAnchor="middle"
-          fontSize={Math.max(8, 9.5 * scale + 1)}
-          fontWeight={800}
-          fill="#8C2F2F"
-          stroke="#FFFCF2"
-          strokeWidth="2.4"
-          paintOrder="stroke"
-        >
-          最远啦
-        </text>
-      )}
-    </g>
-  );
-}
-
 function stageHint(d: BrothersData, mine: Monkey, mate: Monkey) {
   if (!mine.alive) return "抓住绳子别松手——TA 跳到平台上，或者按「拉 TA 一把」，都能把你拽回来。";
   if (!mate.alive) return "TA 挂在绳子上了，按下面的按钮拉一把；绳距越远，绳子绷得越紧。";
   if (mine.finished) return "你已经到终点啦，等 TA 的时候随时可以拉 TA 一把。";
   if (d.pulls > 0) return `已经互救 ${d.rescued} 次了，保持这个节奏，一起走到终点。`;
-  return "轻点是小跳，长按才跳远；蓄力时看绿色的落点圈，变成红色就说明会掉下去。";
+  return "轻点是小跳，长按才跳远；掉下去会被绳子挂住，等 TA 拉你一把。";
 }
 
 // 旧版本（1.4 之前）的房间数据没有 tuning/lastJump 数组；给一个友好提示，避免整块游戏区崩溃。
