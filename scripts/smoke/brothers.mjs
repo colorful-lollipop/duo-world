@@ -63,7 +63,11 @@ export default async function run({ A, B, waitUntil, assert }) {
     A.act({ type: "jump", hold });
     await waitUntil(() => A.game().mon[0].alive === false, "brothers A hangs on rope");
     assert(A.game().falls >= 1, "falls counted");
-    B.act({ type: "pull" });
+    // 连点救援：每点一下只涨一点卷绳进度，停手会回落。
+    for (let i = 0; i < 12 && A.game().mon[0].alive === false; i++) {
+      B.act({ type: "pull" });
+      await sleep(50);
+    }
     await waitUntil(() => A.game().mon[0].alive === true, "brothers B pulls A up");
     const after = A.game();
     assert(after.pulls >= 1 && after.rescued >= 1, "pull and rescue counted");
@@ -72,6 +76,18 @@ export default async function run({ A, B, waitUntil, assert }) {
 
   let guard = 0;
   while (A.game().phase === "playing" && guard++ < 400) {
+    const hanging = A.game().mon.findIndex((m) => !m.alive);
+    if (hanging >= 0) {
+      const rescuer = 1 - hanging;
+      if (A.game().mon[rescuer].alive) {
+        const client = rescuer === 0 ? A : B;
+        for (let i = 0; i < 12 && A.game().mon[hanging].alive === false; i++) {
+          client.act({ type: "pull" });
+          await sleep(50);
+        }
+      }
+      if (A.game().phase !== "playing") break;
+    }
     for (const seat of [0, 1]) {
       const d = A.game();
       if (d.phase !== "playing") break;
@@ -96,9 +112,11 @@ export default async function run({ A, B, waitUntil, assert }) {
   assert(end.overReason === "finish", "both brothers reached the finish");
   assert(end.mon[0].finished && end.mon[1].finished, "both finished flags");
   assert(end.distance >= end.finishX, "distance covers the finish line");
+  assert(end.coinsGot > 0, "coins collected along the way");
 
   const entry = await waitUntil(() => findJournal(A, "brothers"), "brothers journal");
   assert(entry.title === "哥俩好" && entry.data.finished === true, "brothers journal data");
   assert(entry.data.pulls >= 1 && entry.data.rescued >= 1, "brothers journal records rope rescue");
-  console.log("done: brothers realtime jump / tuning data / rope fall / pull rescue / finish + journal");
+  assert(entry.data.coins > 0 && entry.data.coinTotal > 0, "brothers journal records coins");
+  console.log("done: brothers realtime jump / tuning data / rope fall / rapid tap rescue / coins / finish + journal");
 }

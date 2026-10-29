@@ -17,6 +17,8 @@ export interface StageProps {
   send: (msg: Record<string, unknown>) => boolean;
   now: () => number;
   subscribe: (fn: (msg: any) => void) => () => void;
+  /** 最近一次 WebSocket ping 的往返延迟（毫秒），还没测到或断线时为 null。 */
+  latency?: number | null;
 }
 
 export interface ResultExtraProps {

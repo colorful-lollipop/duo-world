@@ -2234,6 +2234,18 @@ img {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
+  /* 游戏界面禁止选中/长按复制，避免拖动画布或连点时误选文字；输入框单独放开 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.stage input,
+.stage textarea,
+.stage [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
 }
 
 .stage::-webkit-scrollbar {

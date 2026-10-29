@@ -18,6 +18,7 @@ export function useRoom(code: string, token: string | null) {
   const [state, setState] = useState<RoomState | null>(null);
   const [seat, setSeat] = useState<number | null>(null);
   const [status, setStatus] = useState<SocketStatus>("connecting");
+  const [latency, setLatency] = useState<number | null>(null);
   const [notice, setNotice] = useState<{ id: number; text: string } | null>(null);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [welcomeSeq, setWelcomeSeq] = useState(0);
@@ -148,6 +149,10 @@ export function useRoom(code: string, token: string | null) {
             offsetRef.current = msg.state.now - Date.now();
             setWelcomeSeq((n) => n + 1);
             flushPending();
+            // 一进来就测一次，不用等 4 秒后的第一个心跳
+            try {
+              ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
+            } catch {}
             break;
           }
           case "ack": {
@@ -163,6 +168,7 @@ export function useRoom(code: string, token: string | null) {
           case "pong": {
             const rtt = Date.now() - Number(msg.t || 0);
             if (Number.isFinite(rtt) && rtt >= 0 && rtt < 30000) {
+              setLatency(Math.round(rtt));
               offsetRef.current = msg.now - (Number(msg.t) + rtt / 2);
             }
             break;
@@ -217,6 +223,7 @@ export function useRoom(code: string, token: string | null) {
           return;
         }
         setStatus("offline");
+        setLatency(null);
         retryRef.current = Math.min(retryRef.current + 1, 5);
         const delay = Math.min(700 * retryRef.current, 5000);
         window.clearTimeout(reconnectTimer.current);
@@ -241,7 +248,7 @@ export function useRoom(code: string, token: string | null) {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
       }
-    }, 15000);
+    }, 4000);
 
     return () => {
       closedByUs.current = true;
@@ -260,5 +267,5 @@ export function useRoom(code: string, token: string | null) {
     [send],
   );
 
-  return { state, seat, status, notice, notify, send, act, now, subscribe, reactions, welcomeSeq, setStatus };
+  return { state, seat, status, latency, notice, notify, send, act, now, subscribe, reactions, welcomeSeq, setStatus };
 }

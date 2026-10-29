@@ -192,7 +192,7 @@ function JoinScreen({ code, onJoined }: { code: string; onJoined: (token: string
 
 function LiveRoom({ code, token, onInvalid }: { code: string; token: string; onInvalid: () => void }) {
   const room = useRoom(code, token);
-  const { state, seat, status, notice, send, act, now, subscribe, reactions, notify, welcomeSeq } = room;
+  const { state, seat, status, latency, notice, send, act, now, subscribe, reactions, notify, welcomeSeq } = room;
   const [soundOn, setSoundOn] = useState(() => loadSound());
   const [shareOpen, setShareOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -406,6 +406,7 @@ function LiveRoom({ code, token, onInvalid }: { code: string; token: string; onI
               send={send}
               now={now}
               subscribe={subscribe}
+              latency={latency}
               onRestart={() => {
                 sfx.tap();
                 send({ type: "start" });

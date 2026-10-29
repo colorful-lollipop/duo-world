@@ -72,6 +72,13 @@ function put(d, seat, x) {
   return p;
 }
 
+/** 模拟快速连点救援，直到同伴被拉上来（或点满 times 次）。 */
+function rapidPull(room, d, seat, t, times = 12) {
+  for (let i = 0; i < times && !d.mon[1 - seat].alive; i++) {
+    brothers.action(room, seat, { type: "pull" }, t + i * 40);
+  }
+}
+
 describe("哥俩好 · 关卡生成", () => {
   it("同一个 seed 生成的断桥完全一致", () => {
     const a = makeLevel(12345, 30, true);
@@ -128,6 +135,17 @@ describe("哥俩好 · 关卡生成", () => {
     }
   });
 
+  it("金币同 seed 一致，且尖刺平台不会放金币", () => {
+    const a = makeLevel(12345, 30, true);
+    const b = makeLevel(12345, 30, true);
+    expect(a.coins).toEqual(b.coins);
+    expect(a.coins.length).toBeGreaterThan(0);
+    for (const c of a.coins) {
+      expect(a.platforms[c.platform].spike).toBe(false);
+      expect(c.taken).toBeNull();
+    }
+  });
+
   it("platformAt 只认覆盖到的位置", () => {
     const platforms = [
       { x: 0, w: 100, y: 0, spike: false },
@@ -156,10 +174,15 @@ describe("哥俩好 · 初始状态", () => {
       jumpMax: 300,
       chargeMs: 1400,
       cooldownMs: 260,
-      pullCooldownMs: 900,
       jumpMs: 520,
+      reelTapGain: 14,
     });
     expect(d.rope).toBe(300);
+    expect(d.coins.length).toBe(d.coinTotal);
+    expect(d.coinTotal).toBeGreaterThan(0);
+    expect(d.coinsGot).toBe(0);
+    expect(d.reel).toEqual([0, 0]);
+    expect(d.mon.every((m) => m.coins === 0)).toBe(true);
     expect(d.falls).toBe(0);
     expect(d.rescued).toBe(0);
     expect(d.pulls).toBe(0);
@@ -296,7 +319,7 @@ describe("哥俩好 · 掉坑与绳子", () => {
     expect(d.pulls).toBe(0);
   });
 
-  it("同伴落到平台上会自动把人拉上来", () => {
+  it("同伴落到平台上不会自动救援，要快速连点才能拉上来", () => {
     const { room, d } = start();
     brothers.action(room, 0, { type: "jump", hold: gapHold(d, 0) }, d.startedAt + 500);
     expect(d.mon[0].alive).toBe(false);
@@ -305,22 +328,31 @@ describe("哥俩好 · 掉坑与绳子", () => {
     const hold = holdFor(d, d.mon[1].x, target);
     expect(brothers.action(room, 1, { type: "jump", hold }, d.startedAt + 800)).toBeNull();
     expect(d.mon[1].alive).toBe(true);
+    expect(d.mon[0].alive).toBe(false);
+    expect(d.rescued).toBe(0);
+    rapidPull(room, d, 1, d.startedAt + 1000);
     expect(d.mon[0].alive).toBe(true);
     expect(d.rescued).toBe(1);
+    expect(d.pulls).toBe(1);
     const land = platformOf(d, d.mon[1].x);
     expect(land).toBe(next);
     expect(platformOf(d, d.mon[0].x)).toBe(land);
     expect(Math.abs(d.mon[0].x - d.mon[1].x)).toBeLessThanOrEqual(60);
   });
 
-  it("pull 能把同伴拉回自己平台，并记 pulls / rescued", () => {
+  it("快速连点 pull 能把同伴拉回自己平台，并记 pulls / rescued", () => {
     const { room, d } = start();
     const t = d.startedAt + 500;
     brothers.action(room, 0, { type: "jump", hold: gapHold(d, 0) }, t);
     expect(d.mon[0].alive).toBe(false);
-    expect(brothers.action(room, 1, { type: "pull" }, t + 300)).toBeNull();
+    const first = brothers.action(room, 1, { type: "pull" }, t + 300);
+    expect(first).toBeNull();
+    expect(d.reel[0]).toBe(d.tuning.reelTapGain);
+    expect(d.mon[0].alive).toBe(false);
+    rapidPull(room, d, 1, t + 400);
     expect(d.pulls).toBe(1);
     expect(d.rescued).toBe(1);
+    expect(d.reel[0]).toBe(0);
     expect(d.mon[0].alive).toBe(true);
     const land = platformOf(d, d.mon[1].x);
     expect(platformOf(d, d.mon[0].x)).toBe(land);
@@ -331,32 +363,61 @@ describe("哥俩好 · 掉坑与绳子", () => {
     expect(brothers.action(room, 1, { type: "pull" }, t + 1000)).toBeTruthy();
   });
 
-  it("pull 有冷却", () => {
+  it("停手后连点进度会回落，不能只点一下等它自己满", () => {
     const { room, d } = start();
     const t = d.startedAt + 500;
     brothers.action(room, 0, { type: "jump", hold: gapHold(d, 0) }, t);
-    expect(brothers.action(room, 1, { type: "pull" }, t + 300)).toBeNull();
-    expect(d.pulls).toBe(1);
-    // 冷却里的第二次 pull 被拒绝
-    expect(brothers.action(room, 1, { type: "pull" }, t + 400)).toBeTruthy();
-    expect(d.pulls).toBe(1);
-    // 让 0 号再次掉下去（等它自己的跳跃冷却），冷却结束后可以再拉
-    brothers.action(room, 0, { type: "jump", hold: gapHold(d, 0) }, t + 1200);
     expect(d.mon[0].alive).toBe(false);
-    expect(brothers.action(room, 1, { type: "pull" }, t + 1300)).toBeNull();
-    expect(d.pulls).toBe(2);
+    brothers.action(room, 1, { type: "pull" }, t + 300);
+    const before = d.reel[0];
+    expect(before).toBeGreaterThan(0);
+    expect(brothers.tick(room, t + 300 + d.tuning.reelGraceMs + 600)).toBe(true);
+    expect(d.reel[0]).toBeLessThan(before);
+    expect(d.mon[0].alive).toBe(false);
   });
 
-  it("绳子把挂着的人拖在同伴 ±rope 内（action 与 tick 都成立）", () => {
+  it("绳子有最大长度：挂着的人永远被拉在同伴 ±rope 内", () => {
     const { room, d } = start();
     const t = d.startedAt + 500;
     brothers.action(room, 0, { type: "jump", hold: gapHold(d, 0) }, t);
     expect(Math.abs(d.mon[0].x - d.mon[1].x)).toBeLessThanOrEqual(d.rope);
-    // 模拟同伴跳走很远：tick 应该把挂着的人拖回来
+    // 模拟同伴被拖得很远：下一次 tick 必须把挂着的人拉回最大绳长以内
     d.mon[1].x = d.mon[0].x + d.rope + 120;
     expect(brothers.tick(room, t + 1000)).toBe(true);
     expect(Math.abs(d.mon[0].x - d.mon[1].x)).toBeLessThanOrEqual(d.rope);
-    expect(brothers.tick(room, t + 1100)).toBe(false);
+  });
+
+  it("两个人都活着时，跳跃落点也不能超出绳长", () => {
+    const { room, d } = start();
+    put(d, 0, 200);
+    put(d, 1, 20);
+    expect(brothers.action(room, 0, { type: "jump", hold: d.tuning.chargeMs }, d.startedAt + 500)).toBeNull();
+    expect(Math.abs(d.mon[0].x - d.mon[1].x)).toBeLessThanOrEqual(d.rope);
+  });
+
+  it("一个人挂着时，另一个人会被绳子慢慢往他那边拖", () => {
+    const { room, d } = start();
+    const t = d.startedAt + 500;
+    brothers.action(room, 0, { type: "jump", hold: gapHold(d, 0) }, t);
+    expect(d.mon[0].alive).toBe(false);
+    const before = d.mon[1].x;
+    expect(Math.abs(d.mon[0].x - before)).toBeGreaterThan(d.tuning.dragMinDist);
+    expect(brothers.tick(room, t + 1000)).toBe(true);
+    expect(d.mon[1].x).toBeGreaterThan(before);
+    // 拖动不会把活着的人拖出平台
+    expect(platformOf(d, d.mon[1].x)).not.toBeNull();
+  });
+
+  it("落地会收集平台上的金币，计入总收集数", () => {
+    const { room, d } = start();
+    const coin = d.coins[0];
+    const p = d.platforms[coin.platform];
+    put(d, 0, p.x + 10);
+    expect(brothers.action(room, 0, { type: "jump", hold: 0 }, d.startedAt + 500)).toBeNull();
+    expect(d.coinsGot).toBeGreaterThan(0);
+    expect(d.mon[0].coins).toBe(d.coinsGot);
+    expect(d.coins.some((c) => c.taken === 0)).toBe(true);
+    expect(d.coinsGot).toBeLessThanOrEqual(d.coinTotal);
   });
 
   it("两个人都挂着就结束（both-fall）", () => {
@@ -380,6 +441,7 @@ describe("哥俩好 · 终点与结算", () => {
   it("一个人到终点只标记 finished，两个人都到才 finish", () => {
     const { room, d } = start();
     put(d, 0, d.finishX - 40);
+    put(d, 1, d.finishX - 40);
     expect(brothers.action(room, 0, { type: "jump", hold: d.tuning.chargeMs }, d.startedAt + 500)).toBeNull();
     expect(d.mon[0].finished).toBe(true);
     expect(d.phase).toBe("playing");
@@ -398,6 +460,7 @@ describe("哥俩好 · 终点与结算", () => {
   it("跳过头也判 finish，不会掉坑", () => {
     const { room, d } = start();
     put(d, 0, d.finishX - 5);
+    put(d, 1, d.finishX - 5);
     brothers.action(room, 0, { type: "jump", hold: d.tuning.chargeMs }, d.startedAt + 500);
     expect(d.mon[0].alive).toBe(true);
     expect(d.mon[0].finished).toBe(true);
@@ -415,7 +478,7 @@ describe("哥俩好 · 终点与结算", () => {
     d.finishX = 356;
     d.mon[1] = { ...d.mon[1], x: 340, y: 0, alive: true, finished: true };
     d.mon[0] = { ...d.mon[0], x: 310, y: 4, alive: false, finished: false };
-    expect(brothers.action(room, 1, { type: "pull" }, d.startedAt + 1000)).toBeNull();
+    rapidPull(room, d, 1, d.startedAt + 1000);
     expect(d.mon[0].alive).toBe(true);
     expect(d.mon[0].x).toBeGreaterThanOrEqual(d.finishX);
     expect(d.mon[0].finished).toBe(true);
@@ -444,7 +507,7 @@ describe("哥俩好 · 终点与结算", () => {
     const { room, d } = start();
     const t = d.startedAt + 500;
     brothers.action(room, 0, { type: "jump", hold: gapHold(d, 0) }, t);
-    brothers.action(room, 1, { type: "pull" }, t + 300);
+    rapidPull(room, d, 1, t + 300);
     const summary = brothers.summary(room);
     expect(summary.title).toBe("哥俩好");
     expect(typeof summary.detail).toBe("string");
@@ -454,6 +517,7 @@ describe("哥俩好 · 终点与结算", () => {
       falls: 1,
       rescued: 1,
       pulls: 1,
+      coinTotal: d.coinTotal,
     });
     expect(summary.data.meters).toBeGreaterThan(0);
     expect(typeof summary.data.jumps).toBe("number");

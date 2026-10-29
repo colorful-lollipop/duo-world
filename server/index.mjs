@@ -526,7 +526,7 @@ const tickTimer = setInterval(() => {
     broadcastState(room);
     if (room.game?.id === "draw-guess") sendInkSync(room);
   }
-}, 400);
+}, 100);
 
 // 心跳
 const heartbeat = setInterval(() => {

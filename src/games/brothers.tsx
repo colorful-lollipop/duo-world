@@ -15,9 +15,14 @@ interface Tuning {
   jumpMax: number;
   chargeMs: number;
   cooldownMs: number;
-  pullCooldownMs: number;
   jumpMs: number;
   pullMs: number;
+  finishBonus: number;
+  reelTapGain: number;
+  reelDecayPerSec: number;
+  reelGraceMs: number;
+  dragSpeed: number;
+  dragMinDist: number;
 }
 
 interface JumpFx {
@@ -48,7 +53,15 @@ interface Monkey {
   finished: boolean;
   cooldownUntil: number;
   lastJumpAt: number;
-  pullReadyAt?: number;
+  coins: number;
+}
+
+interface Coin {
+  id: number;
+  platform: number;
+  x: number;
+  y: number;
+  taken: number | null;
 }
 
 interface BrothersData {
@@ -62,6 +75,13 @@ interface BrothersData {
   overReason: string;
   lastJump: (JumpFx | null)[];
   lastPull: (PullFx | null)[];
+  reel: number[];
+  reelAt: number[];
+  lastReel: { seat: number; at: number; progress: number } | null;
+  lastCoin: { seat: number; amount: number; at: number } | null;
+  coins: Coin[];
+  coinTotal: number;
+  coinsGot: number;
   falls: number;
   rescued: number;
   pulls: number;
@@ -84,6 +104,13 @@ function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
 }
 
+function platformAt(platforms: Platform[], x: number) {
+  for (const p of platforms) {
+    if (x >= p.x && x <= p.x + p.w) return p;
+  }
+  return null;
+}
+
 /** 约 30fps 的重绘节拍，够顺滑又不至于把两核小机器烤热。 */
 function useBeat() {
   const [t, setT] = useState(() => Date.now());
@@ -91,7 +118,7 @@ function useBeat() {
     let raf = 0;
     let last = 0;
     const loop = (ts: number) => {
-      if (ts - last > 32) {
+      if (ts - last > 16) {
         last = ts;
         setT(Date.now());
       }
@@ -198,13 +225,18 @@ interface Vis {
   jumping: boolean;
 }
 
-const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
+const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
   const d = game.data as BrothersData;
   const tuning = d.tuning;
   const beat = useBeat();
   const { ref: worldRef, size } = useSize<HTMLDivElement>();
   const [chargeStart, setChargeStart] = useState<number | null>(null);
+  const [localJump, setLocalJump] = useState<JumpFx | null>(null);
   const serverNow = now();
+  const gameRef = useRef(d);
+  gameRef.current = d;
+  const nowRef = useRef(now);
+  nowRef.current = now;
 
   const mine = d.mon[seat];
   const mate = d.mon[1 - seat];
@@ -246,13 +278,26 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
           return { x, feetWorld: feet, handWorld: feet + HAND_OFFSET, hang: false, pose: "jump", swing: 0, jumping: true };
         }
       }
+      // 自己按下起跳后先本地播放，别等服务器回包；服务器状态到了再无缝接上。
+      const local = localJump && localJump.seat === i ? localJump : null;
+      if (local) {
+        const p = (serverNow - local.startedAt) / local.ms;
+        if (p >= 0 && p < 1) {
+          const x = local.from + (local.to - local.from) * p;
+          const base = local.fromY + (local.toY - local.fromY) * p;
+          const feet = base + Math.sin(Math.PI * p) * ARC;
+          return { x, feetWorld: feet, handWorld: feet + HAND_OFFSET, hang: false, pose: "jump", swing: 0, jumping: true };
+        }
+      }
       if (!m.alive) {
         const swing = Math.sin(beat / 260 + i * 1.9) * 9;
         const swayX = Math.sin(beat / 300 + i * 1.3) * 4;
+        const reel = d.reel?.[i] || 0;
+        const lift = (reel / 100) * 30;
         return {
           x: m.x + swayX,
-          feetWorld: m.y - HANG_DROP,
-          handWorld: m.y,
+          feetWorld: m.y - HANG_DROP + lift,
+          handWorld: m.y + lift,
           hang: true,
           pose: "hang",
           swing,
@@ -261,7 +306,7 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
       }
       return { x: m.x, feetWorld: m.y, handWorld: m.y + HAND_OFFSET, hang: false, pose: "idle", swing: 0, jumping: false };
     },
-    [d.mon, d.lastJump, d.lastPull, serverNow, beat],
+    [d.mon, d.lastJump, d.lastPull, d.reel, localJump, serverNow, beat],
   );
 
   const vis = [getVis(0), getVis(1)];
@@ -289,9 +334,36 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
     if (started === null) return;
     chargeRef.current = null;
     setChargeStart(null);
-    const hold = Math.max(0, Math.min(tuningRef.current.chargeMs, Date.now() - started));
-    act({ type: "jump", hold });
-  }, [act]);
+    const tuning = tuningRef.current;
+    const hold = Math.max(0, Math.min(tuning.chargeMs, Date.now() - started));
+    const g = gameRef.current;
+    const m = g.mon[seat];
+    const fromP = platformAt(g.platforms, m.x);
+    const power = hold / tuning.chargeMs;
+    const dist = Math.round(tuning.jumpMin + (tuning.jumpMax - tuning.jumpMin) * power);
+    let to = Math.min(m.x + dist, g.finishX + tuning.finishBonus);
+    const mate = g.mon[1 - seat];
+    if (mate.alive && Math.abs(to - mate.x) > g.rope) {
+      to = mate.x + Math.sign(to - mate.x) * g.rope;
+    }
+    let land = platformAt(g.platforms, to);
+    if (!land && to >= g.finishX) {
+      to = g.finishX;
+      land = platformAt(g.platforms, g.finishX);
+    }
+    setLocalJump({
+      seat,
+      from: m.x,
+      to,
+      fromY: fromP ? fromP.y : m.y,
+      toY: land ? land.y : fromP ? fromP.y : m.y,
+      startedAt: nowRef.current(),
+      ms: tuning.jumpMs,
+      result: land && !land.spike ? (to >= g.finishX ? "finish" : "land") : "hang",
+    });
+    const ok = act({ type: "jump", hold });
+    if (!ok) setLocalJump(null);
+  }, [act, seat]);
 
   const cancelCharge = useCallback(() => {
     if (chargeRef.current === null) return;
@@ -319,6 +391,17 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
       window.removeEventListener("blur", cancelCharge);
     };
   }, [chargeStart, release, cancelCharge]);
+
+  useEffect(() => {
+    if (!localJump) return;
+    const received = d.lastJump?.[localJump.seat];
+    if (received && received.startedAt >= localJump.startedAt - 80) {
+      setLocalJump(null);
+      return;
+    }
+    const timer = window.setTimeout(() => setLocalJump(null), localJump.ms + 180);
+    return () => window.clearTimeout(timer);
+  }, [d.lastJump, localJump]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -350,18 +433,26 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
   const myName = room.seats[seat]?.profile?.nickname || "你";
   const mateName = room.seats[1 - seat]?.profile?.nickname || "TA";
 
-  const canPull = d.phase === "playing" && mine.alive && !mate.alive && !myVis.jumping;
-  const pullCooling = Math.max(0, (mine.pullReadyAt || 0) - serverNow);
-  const pullDistance = Math.abs(mine.x - mate.x);
+  const canReel = d.phase === "playing" && mine.alive && !mate.alive;
+  const reelProgress = d.reel?.[1 - seat] || 0;
+  const myReel = d.reel?.[seat] || 0;
 
   const status = (() => {
     if (d.phase !== "playing") return "这一局结束啦";
-    if (!mine.alive) return "🪢 你挂在绳子上，等 TA 拉你";
+    if (!mine.alive) {
+      return myReel > 0
+        ? `🪢 你挂在绳子上，TA 正在拉你 ${Math.round(myReel)}%`
+        : "🪢 你挂在绳子上，等 TA 快速连点拉你";
+    }
     if (mine.finished) return mate.finished ? "🎉 两个人都到终点啦" : "🎉 你到终点啦，随时能拉 TA 一把";
     if (myVis.jumping) return "在空中…";
-    if (!mate.alive) return "TA 挂在绳子上了 · 按下面的按钮拉一把";
+    if (!mate.alive) {
+      return reelProgress > 0
+        ? `TA 挂着 · 继续点！${Math.round(reelProgress)}%`
+        : "TA 挂着 · 快速连点下面的按钮";
+    }
     if (cooling > 0) return "刚落地，稳一下…";
-    if (charging) return `蓄力中 ${Math.round((chargeHold / tuning.chargeMs) * 100)}% · 松开起跳`;
+    if (charging) return "蓄力中 · 松开起跳";
     return "按住蓄力 · 轻点小跳 · 长按远跳";
   })();
 
@@ -382,8 +473,6 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
   const ropeD = `M${ax} ${ay} Q ${midX} ${midY} ${bx} ${by}`;
   const ropeW = Math.max(2, (2.2 + tension * 2.6) * Math.max(0.8, scale));
   const ropeTaut = tension > 0.62;
-
-  const pullButtonLabel = pullCooling > 0 ? `绳子收紧中 ${(pullCooling / 1000).toFixed(1)}s` : "拉 TA 一把";
 
   return (
     <div className="stage brothers-stage">
@@ -426,8 +515,20 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
           <span title="摔下去的次数">💥 {d.falls}</span>
           <span title="被同伴救回来的次数">🤝 {d.rescued}</span>
           <span title="拉同伴的次数">🪢 {d.pulls}</span>
+          <span title="收集到的金币">🪙 {d.coinsGot ?? 0}/{d.coinTotal ?? 0}</span>
           <span className={secondsLeft <= 30 ? "urgent" : ""} title="剩余时间">
             ⏱ {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
+          </span>
+          <span
+            className={
+              "brothers-ping " +
+              (latency == null ? "unknown" : latency <= 90 ? "good" : latency <= 180 ? "ok" : "bad")
+            }
+            title={latency == null ? "正在测量网络延迟" : `最近一次网络往返延迟 ${Math.round(latency)} 毫秒`}
+          >
+            <Icon name="wifi" size={14} />
+            <b>{latency == null ? "--" : Math.round(latency)}</b>
+            <em>ms</em>
           </span>
         </div>
       </div>
@@ -511,6 +612,25 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
               </g>
             );
           })}
+
+          {/* 金币 */}
+          {(d.coins || [])
+            .filter((c) => c.taken === null)
+            .map((c) => {
+              const bob = Math.sin(beat / 320 + c.id * 1.7) * 2.4 * scale;
+              const cx = toX(c.x);
+              const cy = toY(c.y) + bob;
+              return (
+                <g key={c.id} transform={`translate(${cx} ${cy})`}>
+                  <circle r={Math.max(3, 7 * scale)} fill="#FFD34D" stroke="#8A5A12" strokeWidth="1.6" />
+                  <circle r={Math.max(1.3, 3 * scale)} fill="#FFF2A8" />
+                  <path
+                    d={`M0 ${-4 * scale} L${1.3 * scale} ${-1.2 * scale} L${4 * scale} 0 L${1.3 * scale} ${1.2 * scale} L0 ${4 * scale} L${-1.3 * scale} ${1.2 * scale} L${-4 * scale} 0 L${-1.3 * scale} ${-1.2 * scale} Z`}
+                    fill="#C9891C"
+                  />
+                </g>
+              );
+            })}
 
           {/* 绳子 */}
           <path
@@ -612,6 +732,23 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
             </text>
           ))}
 
+          {/* 刚捡到金币的提示 */}
+          {d.lastCoin && serverNow - d.lastCoin.at < 1300 && (
+            <text
+              x={toX(d.mon[d.lastCoin.seat].x)}
+              y={toY(d.mon[d.lastCoin.seat].y) - 76 * scale}
+              textAnchor="middle"
+              fontSize={Math.max(12, 14 * scale + 2)}
+              fontWeight={900}
+              fill="#A66A12"
+              stroke="#FFFCF2"
+              strokeWidth={Math.max(2.6, 3.4 * scale)}
+              paintOrder="stroke"
+            >
+              +{d.lastCoin.amount} 🪙
+            </text>
+          )}
+
           {/* 蓄力条：在自己猴子头顶 */}
           {charging && (
             <g
@@ -636,19 +773,6 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
                 rx={3 * scale}
                 fill={chargeHold / tuning.chargeMs > 0.75 ? "#FF6B6B" : chargeHold / tuning.chargeMs > 0.35 ? "#FFC93C" : "#4CC38A"}
               />
-              <text
-                x="0"
-                y={-11 * scale}
-                textAnchor="middle"
-                fontSize={Math.max(9, 10.5 * scale + 1)}
-                fontWeight={800}
-                fill="#3A2618"
-                stroke="#FFFCF2"
-                strokeWidth="2.6"
-                paintOrder="stroke"
-              >
-                {Math.round((chargeHold / tuning.chargeMs) * 100)}%
-              </text>
             </g>
           )}
         </svg>
@@ -657,24 +781,23 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
           {status}
         </div>
 
-        {canPull && (
+        {canReel && (
           <button
             type="button"
-            className={"brothers-pull" + (pullCooling > 0 ? " cooling" : "")}
-            disabled={pullCooling > 0}
+            className="brothers-pull reel"
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              if (pullCooling > 0) return;
               act({ type: "pull" });
             }}
           >
             <Icon name="hand" size={17} />
-            <span>{pullButtonLabel}</span>
-            <em>
-              绳距 {(pullDistance / METERS).toFixed(1)} / {(d.rope / METERS).toFixed(0)} 米
-            </em>
+            <span>{reelProgress > 0 ? `继续点！${Math.round(reelProgress)}%` : "快速点我 · 拉 TA 上来"}</span>
+            <em>{reelProgress > 0 ? "别停，停手会慢慢滑回去" : "连续快点，进度满了才拉上来"}</em>
+            <i className="reel-meter" aria-hidden="true">
+              <b style={{ width: `${reelProgress}%` }} />
+            </i>
           </button>
         )}
       </div>
@@ -685,17 +808,17 @@ const BrothersStage = ({ room, seat, game, act, now }: StageProps) => {
 };
 
 function stageHint(d: BrothersData, mine: Monkey, mate: Monkey) {
-  if (!mine.alive) return "抓住绳子别松手——TA 跳到平台上，或者按「拉 TA 一把」，都能把你拽回来。";
-  if (!mate.alive) return "TA 挂在绳子上了，按下面的按钮拉一把；绳距越远，绳子绷得越紧。";
-  if (mine.finished) return "你已经到终点啦，等 TA 的时候随时可以拉 TA 一把。";
-  if (d.pulls > 0) return `已经互救 ${d.rescued} 次了，保持这个节奏，一起走到终点。`;
-  return "轻点是小跳，长按才跳远；掉下去会被绳子挂住，等 TA 拉你一把。";
+  if (!mine.alive) return "抓住绳子别松手——TA 快速连点按钮，就能慢慢把你拉上去。";
+  if (!mate.alive) return "TA 挂着，绳子正把你慢慢往那边拖；快速连点下面的按钮，把她拉上来！";
+  if (mine.finished) return "你已经到终点啦，等 TA 的时候可以快速连点拉她上来。";
+  if (d.pulls > 0) return `已经互救 ${d.rescued} 次了，顺便把平台上的金币捡一捡，一起走到终点。`;
+  return "轻点是小跳，长按才跳远；掉下去会被绳子挂住，路上的金币记得捡。";
 }
 
 // 旧版本（1.4 之前）的房间数据没有 tuning/lastJump 数组；给一个友好提示，避免整块游戏区崩溃。
 export const Stage = (props: StageProps) => {
   const d = props.game.data as BrothersData | null;
-  if (!d?.tuning || !Array.isArray(d.lastJump)) {
+  if (!d?.tuning || !d.tuning.reelTapGain || !Array.isArray(d.lastJump) || !Array.isArray(d.coins)) {
     return (
       <section className="stage brothers-stage">
         <h2>这一局是旧版本</h2>
@@ -725,6 +848,9 @@ export const ResultExtra = ({ room, seat, game }: ResultExtraProps) => {
         </span>
         <span>
           <b>{pulls}</b> 次拉人
+        </span>
+        <span>
+          <b>{Number(d.coinsGot) || 0}</b> / {Number(d.coinTotal) || 0} 枚金币
         </span>
       </div>
       <p className="muted">

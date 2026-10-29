@@ -13,6 +13,7 @@ interface GameStageHostProps {
   send: (msg: Record<string, unknown>) => boolean;
   now: () => number;
   subscribe: (fn: (msg: any) => void) => () => void;
+  latency?: number | null;
   onRestart: () => void;
   onExit: () => void;
 }
@@ -26,7 +27,7 @@ interface GameStageHostProps {
  * 加新游戏不需要改这里，也不需要改 RoomPage。
  */
 export function GameStageHost(props: GameStageHostProps) {
-  const { room, seat, game, act, send, now, subscribe, onRestart, onExit } = props;
+  const { room, seat, game, act, send, now, subscribe, latency, onRestart, onExit } = props;
   const meta = GAME_MAP[game.id];
   const [loaded, setLoaded] = useState<{ id: string; module: StageModule } | null>(() => {
     const cached = getCachedGameModule(game.id);
@@ -86,7 +87,7 @@ export function GameStageHost(props: GameStageHostProps) {
     );
   }
 
-  const stageProps = { room, seat, game, meta, act, send, now, subscribe };
+  const stageProps = { room, seat, game, meta, act, send, now, subscribe, latency };
 
   if (game.data.phase === "over") {
     const Extra = loaded.module.ResultExtra;
