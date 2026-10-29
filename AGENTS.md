@@ -1,6 +1,6 @@
 # AGENTS.md
 
-二人世界（duo-world）：给两个人做的在线小游戏屋。React 18 + Vite + TypeScript 前端，Node ESM（.mjs）+ Express + ws 后端；**7 款游戏**；状态在进程内存，落盘用 `node:sqlite`（`server/store.mjs`，无外部依赖，失败回退 JSON 文件），单实例，房间闲置 12h 清理但纪念册/战绩永久保留。代码和文案大量使用中文，全部为原创实现。
+二人世界（duo-world）：给两个人做的在线小游戏屋。React 18 + Vite + TypeScript 前端，Node ESM（.mjs）+ Express + ws 后端；**9 款游戏**；状态在进程内存，落盘用 `node:sqlite`（`server/store.mjs`，无外部依赖，失败回退 JSON 文件），单实例，房间闲置 12h 清理但纪念册/战绩永久保留。代码和文案大量使用中文，全部为原创实现。
 
 ## 常用命令
 
@@ -10,7 +10,7 @@ npm run dev        # Vite 前端 5173（host 0.0.0.0，代理 /api 和 /ws 到 8
 npm run build      # tsc --noEmit && node scripts/check-games.mjs && vite build
 npm run serve      # build + start（http://localhost:8790）
 npm run start      # 只启动服务（需要先 build 出 dist）
-npm run smoke      # 端到端：起测试服务器(18790) → 双客户端跑完 7 个游戏 → 自动杀进程
+npm run smoke      # 端到端：起测试服务器(18790) → 双客户端跑完 9 个游戏 → 自动杀进程
 npm run smoke:game -- <id>  # 只跑一款游戏的端到端（端口可用 SMOKE_PORT 覆盖）
 npm run test       # Vitest 单测（tests/unit：各游戏规则 + store + rooms）
 npm run test:game -- <id>   # 只跑一款游戏的单测
@@ -24,7 +24,7 @@ npm run new:game -- <id> <名称> [emoji] [渐变1] [渐变2]  # 新游戏脚手
 - `npm run smoke` 会把 `server/index.mjs` 起在 **18790**（`scripts/visual.mjs` 用 18791）；这两个端口被占用时测试会失败。
 - 开发模式里 8790 如果存在旧 `dist` 也会被服务端托管；看前端改动请用 5173。
 - 改完 `server/**` 或 `src/**` 后，以 `npm run build` + `npm run smoke` 为准；`tsc` 只检查 `src` 和 `shared`，服务端 `.mjs` 没有类型检查，靠 smoke 兜底。
-- `npm run smoke` 没有「只跑某个游戏」的参数；加游戏时把流程追加到 `scripts/smoke.mjs`，否则 CI 不会覆盖它。
+- 冒烟按游戏拆分：`scripts/smoke/<id>.mjs` 默认导出 `run(ctx)`，加游戏时脚手架会生成，不要再去改 `scripts/smoke.mjs` 主入口。
 - UI 改动可用 `scripts/visual.mjs` 截图（需本机 Chrome + `playwright-core`，输出到 gitignored 的 `_shots/`，端口 18791；Chrome 不在默认路径时设 `CHROME_PATH`）。
 
 ## 加一个游戏（最核心的约定）
@@ -101,7 +101,7 @@ npm run build                   # 只在你准备合入前跑
 ## 仓库注意事项
 
 - `dist / node_modules / _shots / _ref / data` 都在 `.gitignore`，不要提交（`data/` 是运行时的 SQLite 与回退 JSON，属于用户数据）；`docs/` 里的截图是提交的。CI 在 main push / PR 上跑 Node 20 和 22 的 build + test + smoke。
-- 版本走 `npm version X.Y.Z --no-git-tag-version` + `CHANGELOG.md` 更新 + `git tag vX.Y.Z` + `gh release create`，当前版本 1.4.2。
+- 版本走 `npm version X.Y.Z --no-git-tag-version` + `CHANGELOG.md` 更新 + `git tag vX.Y.Z` + `gh release create`，当前版本 1.5.0。
 - 生产环境：`https://love.zulogic.cn`（服务器 `guan`，systemd 服务 `duo-world`，Node 在 `/opt/node22`，应用 `/opt/duo-world`，OpenResty vhost 反代到 127.0.0.1:8790，复用 `*.zulogic.cn` 通配符证书，`PUBLIC_URL=https://love.zulogic.cn`）。部署步骤看 `docs/DEPLOY.md`。
 - 文件含中文且是 UTF-8：**不要用 PowerShell 的 `Get-Content/Set-Content` 来回读写**（会破坏编码），用文件编辑工具。
 - 详细玩法、部署、扩展指南看 `README.md`；商业化路线图在 `docs/ROADMAP.md`；贡献流程看 `CONTRIBUTING.md`。

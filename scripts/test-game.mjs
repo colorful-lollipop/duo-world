@@ -26,8 +26,10 @@ if (!fs.existsSync(testFile)) {
   process.exit(1);
 }
 
-const bin = path.join(root, "node_modules", ".bin", process.platform === "win32" ? "vitest.cmd" : "vitest");
-const child = spawn(bin, ["run", `tests/unit/${id}.test.mjs`], {
+// 直接用 node 跑 vitest 的入口，不要 spawn node_modules/.bin/vitest.cmd：
+// Node 20+ 在 Windows 上对 .cmd 直接 spawn 会抛 EINVAL（本机 Node 24 已复现）。
+const bin = path.join(root, "node_modules", "vitest", "vitest.mjs");
+const child = spawn(process.execPath, [bin, "run", `tests/unit/${id}.test.mjs`], {
   cwd: root,
   stdio: "inherit",
   env: process.env,
