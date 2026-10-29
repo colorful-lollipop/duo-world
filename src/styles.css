@@ -2240,6 +2240,13 @@ img {
   -webkit-touch-callout: none;
 }
 
+/* 子元素也显式设为不可选中，避免部分浏览器把 auto 解析成可选中 */
+.stage * {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .stage input,
 .stage textarea,
 .stage [contenteditable="true"] {

@@ -23,17 +23,34 @@ interface Tuning {
   reelGraceMs: number;
   dragSpeed: number;
   dragMinDist: number;
+  ropePullSpeed: number;
 }
 
 interface JumpFx {
   seat: number;
   from: number;
   to: number;
+  /** 绳子没拦住时的原始落点；只用于「被绳子拉回来」的视觉拉伸。 */
+  rawTo?: number;
+  ropePulled?: boolean;
   fromY: number;
   toY: number;
   startedAt: number;
   ms: number;
   result: "land" | "hang" | "finish";
+}
+
+/**
+ * 跳跃的横向位置。被绳子拦住时，先向原始落点方向做一个短促的「冲出去再被拽回来」，
+ * 避免最终落点和起点重合时看起来像原地卡住。
+ */
+function jumpVisualX(j: JumpFx, p: number) {
+  const base = j.from + (j.to - j.from) * p;
+  if (!j.ropePulled) return base;
+  const diff = (j.rawTo ?? j.to) - j.to;
+  if (!diff) return base;
+  const over = Math.min(64, Math.abs(diff)) * Math.sign(diff);
+  return base + Math.sin(Math.PI * p) * over;
 }
 
 interface PullFx {
@@ -272,7 +289,7 @@ const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
       if (j) {
         const p = (serverNow - j.startedAt) / j.ms;
         if (p >= 0 && p < 1) {
-          const x = j.from + (j.to - j.from) * p;
+          const x = jumpVisualX(j, p);
           const base = j.fromY + (j.toY - j.fromY) * p;
           const feet = base + Math.sin(Math.PI * p) * ARC;
           return { x, feetWorld: feet, handWorld: feet + HAND_OFFSET, hang: false, pose: "jump", swing: 0, jumping: true };
@@ -283,7 +300,7 @@ const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
       if (local) {
         const p = (serverNow - local.startedAt) / local.ms;
         if (p >= 0 && p < 1) {
-          const x = local.from + (local.to - local.from) * p;
+          const x = jumpVisualX(local, p);
           const base = local.fromY + (local.toY - local.fromY) * p;
           const feet = base + Math.sin(Math.PI * p) * ARC;
           return { x, feetWorld: feet, handWorld: feet + HAND_OFFSET, hang: false, pose: "jump", swing: 0, jumping: true };
@@ -341,7 +358,8 @@ const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
     const fromP = platformAt(g.platforms, m.x);
     const power = hold / tuning.chargeMs;
     const dist = Math.round(tuning.jumpMin + (tuning.jumpMax - tuning.jumpMin) * power);
-    let to = Math.min(m.x + dist, g.finishX + tuning.finishBonus);
+    const rawTo = Math.min(m.x + dist, g.finishX + tuning.finishBonus);
+    let to = rawTo;
     const mate = g.mon[1 - seat];
     if (mate.alive && Math.abs(to - mate.x) > g.rope) {
       to = mate.x + Math.sign(to - mate.x) * g.rope;
@@ -355,6 +373,8 @@ const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
       seat,
       from: m.x,
       to,
+      rawTo,
+      ropePulled: to !== rawTo,
       fromY: fromP ? fromP.y : m.y,
       toY: land ? land.y : fromP ? fromP.y : m.y,
       startedAt: nowRef.current(),

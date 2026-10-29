@@ -20,7 +20,7 @@
 3. **绳子有最大长度 `rope=300`**：
    - 不管两个人都在平台上，还是有人挂着，服务端都会把两人的水平距离限制在 `rope` 内；跳跃落点超出时会被绳子拽回。
    - 一个人掉下去后 `alive=false`（挂在绳子上），不能自己跳；**另一个人会被绳子慢慢往挂着的人那边拖**（`dragSpeed=13px/s`，只在当前平台内移动，不会直接被拖下坑）。
-   - 挂着的猴子会被吊在绳子最大长度内，位置也受同伴移动影响。
+   - 挂着的猴子会被吊在绳子最大长度内，位置也受同伴移动影响；同伴大跳后如果超过绳长，会按 `ropePullSpeed=420px/s` 平滑拉回，不会瞬移。
 4. **快速连点救援**：
    - 站着的人（包括已经到终点的人）点击「快速点我 · 拉 TA 上来」，每点一下增加 `reelTapGain=14%` 卷绳进度，进度显示在按钮和状态栏里。
    - 停手超过 `reelGraceMs=900ms` 后，进度会按 `reelDecayPerSec=9%/s` 回落；所以必须**连续快点**。
@@ -48,6 +48,7 @@
 | `reelGraceMs` | 900 | 停手多久后开始回落 |
 | `dragSpeed` | 13 | 一个人挂着时，另一个人被拖动的速度（px/s） |
 | `dragMinDist` | 120 | 距离超过多少才开始拖 |
+| `ropePullSpeed` | 420 | 被绳子拉回时的最大速度（px/s），用于补间而不是瞬移 |
 | `d.rope` | 300 | 绳子最大长度（水平约束） |
 
 客户端不要重复写死这些数值；蓄力条、跳跃补间、救援进度和冷却显示都直接读 `d.tuning`。
@@ -63,7 +64,7 @@
   phase,                    // playing | over
   overReason,               // finish | both-fall | time
   startedAt, endedAt, deadline, timeLimit,
-  lastJump: [null, null],   // { seat, from, to, fromY, toY, startedAt, ms, result: "land"|"hang"|"finish" }
+  lastJump: [null, null],   // { seat, from, to, rawTo, ropePulled, fromY, toY, startedAt, ms, result: "land"|"hang"|"finish" }
   lastPull: [null, null],   // { seat, fromX, fromY, toX, toY, startedAt, ms }（seat=拉人者）
   reel: [0, 0],             // 每个座位作为「被救者」时的卷绳进度 0..100
   reelAt: [0, 0],           // 最近一次点击时间，用于回落
@@ -99,6 +100,7 @@
 
 - 在 `.brothers-world` 上 pointerdown 开始蓄力、pointerup/pointercancel（以及 window 上的 pointerup/blur 兜底）松开起跳；键盘 Space 同效。输入焦点在聊天框等输入控件时不会触发。
 - **手感**：`useBeat` 以约 60fps 重绘；松手后先用本地预测播放自己的跳跃动画，不等服务器回包；服务器 `lastJump` 到了再接管。服务端 `tick` 改为 100ms，绳子的拖拽更顺。
+- **绳子拦截动画**：`lastJump.ropePulled` 为 true 时，客户端先向 `rawTo` 方向做一个短促的冲刺再被拽回 `to`，避免被绳子拦住时看起来像原地卡住；同伴大跳后挂着的人由 `tick` 逐步拉回，不会瞬间平移。
 - 相机取两人中点；跳跃/拉人/挂绳的坐标都在屏幕坐标里插值，蓄力条跟随自己，**不显示数字百分比**。
 - 绳子用二次贝塞尔：两人靠近时下垂、距离变大时变直变粗、挂人时绷直发光并有小火花；挂着的猴子以手（局部 `(0,-54)`）为轴做钟摆摆动，救援进度越高会被吊得越高。
 - HUD 有网络延迟小图标：取最近一次 WebSocket ping 的 RTT，绿色 ≤90ms、黄色 ≤180ms、红色更高；数据来自 `useRoom().latency`，通过 `StageProps.latency` 传给游戏。
@@ -113,6 +115,6 @@ npm run build
 SMOKE_PORT=18804 npm run smoke:game -- brothers
 ```
 
-单测覆盖：开局无 `turn` + `tuning` + 金币、双方立即跳 + 独立冷却、轻点原地、按 `tuning` 反推跳到下一块、掉坑/尖刺挂绳、挂着不能跳、落平台后仍需快速连点救援、连点进度累积与停手回落、绳子最大长度（挂着与两人都活着）、一个人挂着时另一个人被慢慢拖、金币落地收集、双挂结束、只标记 finished / 两人都到才 finish、冲线过头、超时、结束后拒绝动作、summary 字段（meters/falls/rescued/pulls/coins/finished），以及 `makeLevel` / `platformAt` 测试。
+单测覆盖：开局无 `turn` + `tuning` + 金币、双方立即跳 + 独立冷却、轻点原地、按 `tuning` 反推跳到下一块、掉坑/尖刺挂绳、挂着不能跳、落平台后仍需快速连点救援、连点进度累积与停手回落、绳子最大长度（挂着与两人都活着）、被绳子拦住时记录 `rawTo/ropePulled`、一个人挂着时另一个人被慢慢拖、金币落地收集、双挂结束、只标记 finished / 两人都到才 finish、冲线过头、超时、结束后拒绝动作、summary 字段（meters/falls/rescued/pulls/coins/finished），以及 `makeLevel` / `platformAt` 测试。
 
 冒烟流程：进入游戏后先让 A 跳进第一个坑，B 连续快速点 `pull` 救回；随后双方按 `tuning` 反推 hold，交替跳到各自终点（途中遇到挂绳会自动连点救援），断言 `overReason === "finish"`、两人 `finished`、金币有收集、纪念册 `data.finished === true` 且记录到 `pulls/rescued/coins`。

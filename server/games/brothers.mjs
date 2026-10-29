@@ -26,6 +26,7 @@ const TUNING = {
   // 一个人挂着时，另一个人会被绳子慢慢往挂着的人那边拖
   dragSpeed: 13,
   dragMinDist: 120,
+  ropePullSpeed: 420,
 };
 
 function mulberry32(seed) {
@@ -264,7 +265,8 @@ export default {
       const lo = mate.x - d.rope;
       const hi = mate.x + d.rope;
       if (me.x < lo || me.x > hi) {
-        me.x = clampInt(me.x, lo, hi, me.x);
+        const step = Math.max(1, Math.round((d.tuning.ropePullSpeed * dt) / 1000));
+        me.x = me.x < lo ? Math.min(lo, me.x + step) : Math.max(hi, me.x - step);
         me.y = mate.y;
         changed = true;
       }
@@ -320,11 +322,13 @@ function jump(d, seat, action, now) {
   const dist = Math.round(d.tuning.jumpMin + (d.tuning.jumpMax - d.tuning.jumpMin) * power);
   const from = me.x;
   const fromP = platformAt(d.platforms, from);
-  let to = Math.min(from + dist, d.finishX + d.tuning.finishBonus);
+  const rawTo = Math.min(from + dist, d.finishX + d.tuning.finishBonus);
+  let to = rawTo;
   // 绳子有最大长度：即使两个人都在平台上，也不能跳到绳子拉不到的地方。
   if (mate.alive && Math.abs(to - mate.x) > d.rope) {
     to = mate.x + Math.sign(to - mate.x) * d.rope;
   }
+  const ropePulled = to !== rawTo;
   let land = platformAt(d.platforms, to);
   if (!land && to >= d.finishX) {
     // 冲过头：直接算踩到终点线，别把冲线判成掉坑。
@@ -343,6 +347,8 @@ function jump(d, seat, action, now) {
     to,
     fromY: fromP ? fromP.y : me.y,
     toY: safe ? land.y : hangY,
+    rawTo,
+    ropePulled,
     startedAt: now,
     ms: d.tuning.jumpMs,
     result: safe ? (to >= d.finishX ? "finish" : "land") : "hang",
@@ -355,11 +361,8 @@ function jump(d, seat, action, now) {
     if (to >= d.finishX) me.finished = true;
     d.distance = Math.max(d.distance, me.x);
     collectCoins(d, seat, land, now);
-    if (!mate.alive) {
-      // 同伴还挂着：绳子只负责把她拖到最大长度以内，想上来仍要连点救援。
-      mate.x = clampInt(mate.x, me.x - d.rope, me.x + d.rope, mate.x);
-      mate.y = land.y;
-    }
+    // 同伴还挂着时不在这一帧硬拽：让下面的 tick 按 ropePullSpeed 慢慢把她拉回绳长以内，
+    // 否则大跳之后她会瞬间平移，看起来像「一下子卡过去」。
     d.lastJump[seat].result = me.finished ? "finish" : "land";
     finishIfBoth(d, now);
     return null;

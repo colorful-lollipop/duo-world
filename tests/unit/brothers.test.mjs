@@ -393,6 +393,8 @@ describe("哥俩好 · 掉坑与绳子", () => {
     put(d, 1, 20);
     expect(brothers.action(room, 0, { type: "jump", hold: d.tuning.chargeMs }, d.startedAt + 500)).toBeNull();
     expect(Math.abs(d.mon[0].x - d.mon[1].x)).toBeLessThanOrEqual(d.rope);
+    expect(d.lastJump[0].ropePulled).toBe(true);
+    expect(d.lastJump[0].rawTo).toBeGreaterThan(d.lastJump[0].to);
   });
 
   it("一个人挂着时，另一个人会被绳子慢慢往他那边拖", () => {

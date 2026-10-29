@@ -35,6 +35,27 @@ export function GameStageHost(props: GameStageHostProps) {
   });
   const [failed, setFailed] = useState(false);
 
+  // 兜底阻止游戏舞台里的复制 / 剪切 / 长按菜单；输入框和可编辑区域除外。
+  useEffect(() => {
+    const guard = (e: Event) => {
+      const raw = e.target;
+      const el = raw instanceof Element ? raw : raw instanceof Node ? raw.parentElement : null;
+      if (!el || !el.closest(".stage")) return;
+      if (el.closest("input, textarea, [contenteditable='true']")) return;
+      e.preventDefault();
+    };
+    document.addEventListener("copy", guard);
+    document.addEventListener("cut", guard);
+    document.addEventListener("contextmenu", guard);
+    document.addEventListener("selectstart", guard);
+    return () => {
+      document.removeEventListener("copy", guard);
+      document.removeEventListener("cut", guard);
+      document.removeEventListener("contextmenu", guard);
+      document.removeEventListener("selectstart", guard);
+    };
+  }, []);
+
   useEffect(() => {
     if (loaded?.id === game.id) return;
     let live = true;
