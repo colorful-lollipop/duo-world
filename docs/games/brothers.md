@@ -88,6 +88,8 @@
 
 服务端所有落点/绳长/金币/结束判定都在 `server/games/brothers.mjs`，客户端只发动作、渲染快照（`lastJump` / `lastPull` 做插值，自己起跳有本地预测）。
 
+两人同时起跳时：服务端在同一个 I/O 轮询里收到的多个 `jump` 会合并成一轮 `state` 广播（`server/rooms.mjs` 的 `broadcastState`）；客户端 `useRoom` 对哥俩好的连续 `state` 再合并到下一帧，避免两次完整渲染叠在一起造成卡顿。
+
 ## 关卡与金币生成
 
 - `makeLevel(seed, count, spikes)` 仍然是纯函数、同 seed 完全一致；返回 `{ platforms, finishX, coins }`。

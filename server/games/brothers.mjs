@@ -29,6 +29,15 @@ const TUNING = {
   ropePullSpeed: 420,
 };
 
+/** 兼容旧房间：把后来新增的 tuning 字段补上。 */
+function ensureTuning(d) {
+  if (!d) return;
+  if (!d.tuning) d.tuning = { ...TUNING };
+  for (const [key, value] of Object.entries(TUNING)) {
+    if (d.tuning[key] === undefined) d.tuning[key] = value;
+  }
+}
+
 function mulberry32(seed) {
   let a = seed >>> 0;
   return function next() {
@@ -197,6 +206,7 @@ export default {
 
   action(room, seat, action, now) {
     const d = room.game.data;
+    ensureTuning(d);
     if (d.phase !== "playing") return "这一局已经结束啦";
     if (action?.type === "jump") return jump(d, seat, action, now);
     if (action?.type === "pull") return pull(d, seat, now);
@@ -206,6 +216,7 @@ export default {
   tick(room, now) {
     const d = room.game?.data;
     if (!d || d.phase !== "playing") return false;
+    ensureTuning(d);
     // 兼容 1.4 之前的旧房间数据：缺少新字段时补齐，别让 tick 崩掉。
     if (!Array.isArray(d.reel)) d.reel = [0, 0];
     if (!Array.isArray(d.reelAt)) d.reelAt = [0, 0];

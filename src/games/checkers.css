@@ -6,8 +6,46 @@
   max-width: 780px;
 }
 
+.checkers-score-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkers-help {
+  font-size: 12px;
+  font-weight: 800;
+  color: #2e7d66;
+  white-space: nowrap;
+}
+
+.checkers-rules-list {
+  margin: 4px 0 14px;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.checkers-rules-list li::marker {
+  color: #2eb99a;
+  font-weight: 900;
+}
+
+.checkers-wager {
+  margin: 0 0 16px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: #fff6df;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
 .checkers-board-wrap {
-  width: min(100%, 560px, calc(100dvh - 320px));
+  width: min(100%, 560px, calc(100dvh - 390px));
   margin: 0 auto;
   background: linear-gradient(145deg, #e8c184, #f3d9a7);
   border: 2px solid var(--ink);

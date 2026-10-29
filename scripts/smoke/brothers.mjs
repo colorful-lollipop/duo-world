@@ -52,6 +52,19 @@ export default async function run({ A, B, waitUntil, assert }) {
   assert(start.tuning && start.tuning.jumpMin > 0 && start.tuning.chargeMs > 0, "tuning sent to client");
   assert(start.lastJump.length === 2 && start.lastPull.length === 2, "per-seat animation slots");
 
+  // 双人同时起跳：服务端必须同时接受两个动作，并且合并成一轮状态广播。
+  {
+    const before = A.game().jumps;
+    A.act({ type: "jump", hold: 0 });
+    B.act({ type: "jump", hold: 0 });
+    await waitUntil(() => {
+      const d = A.game();
+      return d && d.jumps >= before + 2 && d.lastJump[0] && d.lastJump[1];
+    }, "brothers simultaneous jumps");
+    assert(A.game().mon[0].alive && A.game().mon[1].alive, "both survive simultaneous small jumps");
+    await sleep(350);
+  }
+
   // 主动制造一次「A 掉坑 → B 拉人」，覆盖绳子救援；
   // 落点选在第一块平台和下一块之间，离两边都有足够余量，不会误判。
   {
@@ -118,5 +131,5 @@ export default async function run({ A, B, waitUntil, assert }) {
   assert(entry.title === "哥俩好" && entry.data.finished === true, "brothers journal data");
   assert(entry.data.pulls >= 1 && entry.data.rescued >= 1, "brothers journal records rope rescue");
   assert(entry.data.coins > 0 && entry.data.coinTotal > 0, "brothers journal records coins");
-  console.log("done: brothers realtime jump / tuning data / rope fall / rapid tap rescue / coins / finish + journal");
+  console.log("done: brothers simultaneous jumps / tuning data / rope fall / rapid tap rescue / coins / finish + journal");
 }

@@ -23,6 +23,7 @@ export function CheckersStage(props: StageProps) {
   const d = game.data;
   const [selected, setSelected] = useState<number | null>(null);
   const [confirmResign, setConfirmResign] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const myTurn = d.phase === "playing" && d.turn === seat;
   const flip = seat === 1;
   const legal = d.legal || {};
@@ -89,7 +90,12 @@ export function CheckersStage(props: StageProps) {
         <span>
           {myTurn ? (chain ? "继续跳吃，必须接着跳" : "轮到你走棋") : `等 ${room.seats[d.turn]?.profile?.nickname || "TA"} 走棋`}
         </span>
-        <b>第 {d.moveCount + 1} 手</b>
+        <div className="checkers-score-right">
+          <button type="button" className="text-button checkers-help" onClick={() => setRulesOpen(true)}>
+            怎么玩？
+          </button>
+          <b>第 {d.moveCount + 1} 手</b>
+        </div>
       </div>
 
       <div className="checkers-board-wrap">
@@ -137,14 +143,31 @@ export function CheckersStage(props: StageProps) {
           ? "吃子后必须继续跳，点击下一个目标格。"
           : allCaptures && d.mandatory
             ? "有子可吃，这一手必须吃子。"
-            : "斜走一格，或跳过对方棋子吃子。"}
-        {d.wager && (
-          <>
-            {" "}
-            小约定：<b>{d.wager}</b>
-          </>
-        )}
+            : "斜着走 · 普通子只能往前 · 到底线变王（可后退，一格） · 斜着跳过敌子吃 · 吃完还能吃就继续"}
       </p>
+
+      {rulesOpen && (
+        <Modal title="爱心跳棋怎么玩？" onClose={() => setRulesOpen(false)}>
+          <ul className="checkers-rules-list">
+            <li>所有棋子都只能斜着走。</li>
+            <li>普通棋子只能往前走。</li>
+            <li>走到底线就变成王，王可以往后走；但一次也只走一格。</li>
+            <li>斜前方隔着对方棋子、后面是空格，就可以跳过去吃子。</li>
+            <li>吃了一个还能继续吃，就再跳一次。</li>
+            <li>默认有子可吃时必须吃；轮到谁谁走棋。</li>
+          </ul>
+          {d.wager && (
+            <p className="checkers-wager">
+              小约定：<b>{d.wager}</b>
+            </p>
+          )}
+          <div className="button-row">
+            <button className="primary" onClick={() => setRulesOpen(false)}>
+              知道啦，开始下棋
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {pending ? (
         <div className="agreement pending-box">

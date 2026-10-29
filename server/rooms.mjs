@@ -257,7 +257,9 @@ export function snapshot(room, { includeInk = false, seat = -1 } = {}) {
   };
 }
 
-export function broadcastState(room) {
+const pendingBrothersBroadcasts = new WeakMap();
+
+function sendStateNow(room) {
   // 每个座位可能看到不同的 game.data（例如你画我猜不能把答案/候选词发给猜的人）。
   for (let seat = 0; seat < room.seats.length; seat++) {
     const s = room.seats[seat];
@@ -265,6 +267,23 @@ export function broadcastState(room) {
       s.ws.send(JSON.stringify({ type: "state", state: snapshot(room, { seat }) }));
     }
   }
+}
+
+export function broadcastState(room) {
+  // 哥俩好是唯一允许两人同时起跳的实时游戏。两个 jump 动作经常在同一个
+  // I/O 轮询里到达；如果每个动作都立刻广播一次完整快照，客户端会连续重绘两次，
+  // 看起来就像「一起跳必卡」。合并到下一轮事件循环只发一次最新状态。
+  if (room.game?.id === "brothers") {
+    if (pendingBrothersBroadcasts.has(room)) return;
+    const timer = setTimeout(() => {
+      pendingBrothersBroadcasts.delete(room);
+      sendStateNow(room);
+    }, 0);
+    timer.unref?.();
+    pendingBrothersBroadcasts.set(room, timer);
+    return;
+  }
+  sendStateNow(room);
 }
 
 export function broadcastEvent(room, event, exceptSeat = -1) {

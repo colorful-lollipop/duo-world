@@ -27,6 +27,8 @@ export function useRoom(code: string, token: string | null) {
   const listeners = useRef(new Set<Listener>());
   const retryRef = useRef(0);
   const closedByUs = useRef(false);
+  const stateFrameRef = useRef<number | undefined>(undefined);
+  const pendingStateRef = useRef<RoomState | null>(null);
   const authedRef = useRef(false);
   const cidSeq = useRef(0);
   /** 断网时排队的动作：重连（welcome）后按顺序补发，服务端用 cid 去重 */
@@ -160,6 +162,28 @@ export function useRoom(code: string, token: string | null) {
             break;
           }
           case "state": {
+            // 哥俩好允许两人同时起跳，两个 state 经常在同一帧到达；
+            // 合并到下一帧只触发一次 React 渲染，避免「一起跳」时连续重绘卡一下。
+            if (msg.state?.game?.id === "brothers") {
+              pendingStateRef.current = msg.state;
+              if (stateFrameRef.current === undefined) {
+                const flush = () => {
+                  stateFrameRef.current = undefined;
+                  const next = pendingStateRef.current;
+                  pendingStateRef.current = null;
+                  if (!next) return;
+                  setState(next);
+                  setStatus("online");
+                  offsetRef.current = next.now - Date.now();
+                };
+                if (typeof window.requestAnimationFrame === "function") {
+                  stateFrameRef.current = window.requestAnimationFrame(flush);
+                } else {
+                  stateFrameRef.current = window.setTimeout(flush, 0);
+                }
+              }
+              break;
+            }
             setState(msg.state);
             setStatus("online");
             offsetRef.current = msg.state.now - Date.now();
@@ -255,6 +279,12 @@ export function useRoom(code: string, token: string | null) {
       document.removeEventListener("visibilitychange", onVisible);
       window.clearInterval(ping);
       window.clearTimeout(reconnectTimer.current);
+      if (stateFrameRef.current !== undefined) {
+        if (typeof window.cancelAnimationFrame === "function") window.cancelAnimationFrame(stateFrameRef.current);
+        else window.clearTimeout(stateFrameRef.current);
+        stateFrameRef.current = undefined;
+      }
+      pendingStateRef.current = null;
       wsRef.current?.close();
       wsRef.current = null;
     };

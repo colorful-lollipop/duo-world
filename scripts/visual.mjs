@@ -431,12 +431,12 @@ try {
   await A.locator(".picker-card", { hasText: "爱情飞行棋" }).click();
   await sleep(250);
   await A.getByRole("button", { name: /开始游戏/ }).click();
-  await A.waitForSelector(".lf-board");
+  await A.waitForSelector(".lf-map");
   await sleep(500);
   await dims(A, "love-flight");
   await A.screenshot({ path: `${shots}/love-flight.png`, fullPage: true });
   await A.locator(".lf-roll").click();
-  await sleep(600);
+  await sleep(1650);
   await A.screenshot({ path: `${shots}/love-flight-rolled.png`, fullPage: true });
   if (await A.locator(".lf-event-card").count()) {
     await A.screenshot({ path: `${shots}/love-flight-event.png`, fullPage: true });
