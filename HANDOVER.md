@@ -1,18 +1,18 @@
 # 二人世界 · 工作交接文档
 
-> 写于 2026-10-28，对应版本 **v1.5.0**。
+> 写于 2026-10-29，对应版本 **v1.6.0**。
 > 这份文档的目标：让一个完全没参与过的人，在一小时内能跑起来、看懂结构、敢改代码、敢发布。
 
 ---
 
 ## 1. 一句话现状
 
-给两个人做的在线小游戏屋，7 款双人游戏、无账号体系（token 即身份）、单实例部署在 `guan` 服务器，
+给两个人做的在线小游戏屋，9 款双人游戏、无账号体系（token 即身份）、单实例部署在 `guan` 服务器，
 线上地址 **https://love.zulogic.cn**，仓库 **https://github.com/colorful-lollipop/duo-world**。
 
 | 项 | 值 |
 | --- | --- |
-| 当前版本 | 1.5.0（tag `v1.5.0`，GitHub Release 已发） |
+| 当前版本 | 1.6.0（tag `v1.6.0`，GitHub Release 已发） |
 | 前端 | React 18 + Vite 5 + TypeScript（`src/`，无路由库，自写 hash 无关的 path 路由） |
 | 后端 | Node ESM `.mjs` + Express 4 + `ws`（`server/`） |
 | 持久化 | `node:sqlite`（`server/store.mjs`），不可用时自动回退 `data/store.json` |
@@ -37,8 +37,8 @@ npm run dev        # Vite 5173（host 0.0.0.0，/api 与 /ws 代理到 8790）+ 
 
 ```bash
 npm run build      # tsc --noEmit && check-games && vite build
-npm run test       # Vitest：9 个文件 / 90 例
-npm run smoke      # 端到端：起测试服务器 18790，双客户端跑完 7 款游戏
+npm run test       # Vitest：11 个文件 / 169 例
+npm run smoke      # 端到端：起测试服务器 18790，双客户端跑完 9 款游戏
 ```
 
 常用命令全表见 `package.json` 的 `scripts`，其中容易忘的几个：
@@ -85,7 +85,7 @@ server/
   games/index.mjs          # 自动发现 server/games/*.mjs（跳过 _ 开头）
   games/_kit.mjs           # 通用工具：gameWins / shuffle / pickRandom / clampInt / normalizeText
   games/_template.mjs      # 新游戏模板
-  games/<id>.mjs           # 7 款游戏规则（默认导出 create/action/tick?/summary/view?）
+  games/<id>.mjs           # 9 款游戏规则（默认导出 create/action/tick?/summary/view?）
   games/_<id>.*.mjs        # 每款游戏自己的题库 / 数值（下划线开头，自动发现器跳过）
 src/
   main.tsx                 # 入口：ErrorBoundary + SW 注册（仅 PROD）
@@ -95,7 +95,7 @@ src/
   pages/LegalPage.tsx      # 用户协议 / 隐私政策渲染器
   games/GameStageHost.tsx  # 懒加载 Stage + 统一结算页（Stage 不处理 over）
   games/registry.ts        # import.meta.glob 按需加载
-  games/<id>.tsx           # 7 款游戏界面（导出 Stage，可选 ResultExtra）
+  games/<id>.tsx           # 9 款游戏界面（导出 Stage，可选 ResultExtra）
   games/<id>.css           # 每款游戏自己的样式，随游戏 chunk 按需加载
   components/              # Critter（13 动物 + 5 心情）、ProfileForm、JournalView、MyData…
   lib/                     # api / storage / useRoom / router / sound / legal / consent
@@ -220,8 +220,10 @@ view(data, seat) -> data        // 可选；按座位隐藏信息（如猜词答
 - 每款游戏独立开发：只读 `docs/games/<id>.md`，用 `npm run test:game -- <id>` / `npm run smoke:game -- <id>` 验证，不需要跑全量。
 - 脚手架：`npm run new:game -- my-game 我的游戏 🎲 #fff #000`；构建前 `check-games.mjs` 会校验元数据、服务端、客户端、单测、冒烟模块齐全。
 
-现有 7 款：`talk-cards` 深夜聊天卡、`draw-guess` 你画我猜、`mind-meld` 心有灵犀、`know-me` 你懂我吗、
-`gomoku` 爱心五子棋、`checkers` 爱心跳棋、`brothers` 哥俩好（双人实时协作跳桥，各自蓄力，掉下去挂绳、可被拉回）。
+现有 9 款：`talk-cards` 深夜聊天卡、`draw-guess` 你画我猜、`mind-meld` 心有灵犀、`know-me` 你懂我吗、
+`gomoku` 爱心五子棋、`checkers` 爱心跳棋、`brothers` 哥俩好（双人实时协作跳桥，各自蓄力，掉下去挂绳、可被拉回）、
+`bomb-squad` 一起拆弹（信息不对称：拆弹员看面板、专家看手册，服务端 `view()` 按座位裁信息）、
+`love-flight` 爱情飞行棋（掷骰跑图 + 真心话 / 小任务 / 撒娇卡）。
 
 ---
 
@@ -260,9 +262,9 @@ view(data, seat) -> data        // 可选；按座位隐藏信息（如猜词答
 
 | 层 | 文件 | 覆盖 | 命令 |
 | --- | --- | --- | --- |
-| 单元 | `tests/unit/*.test.mjs`（9 文件 90 例） | 7 款游戏规则、store、rooms | `npm run test` |
-| 端到端 | `scripts/smoke.mjs` | 双客户端跑完 7 款游戏 + 重连 + 历史/导出/注销 + token 守卫 | `npm run smoke` |
-| 视觉 | `scripts/visual.mjs` | 首页（含老用户态）、协议页、大厅、7 款游戏、纪念册、我的数据；含尺寸/重叠断言 | `node scripts/visual.mjs` |
+| 单元 | `tests/unit/*.test.mjs`（11 文件 169 例） | 9 款游戏规则、store、rooms | `npm run test` |
+| 端到端 | `scripts/smoke/*.mjs`（自动发现） | 双客户端跑完 9 款游戏 + 重连 + 历史/导出/注销 + token 守卫 | `npm run smoke` |
+| 视觉 | `scripts/visual.mjs` | 首页（含老用户态）、协议页、大厅、9 款游戏、纪念册、我的数据；含尺寸/重叠断言 | `node scripts/visual.mjs` |
 | 线上 | `scripts/prod-check.mjs` | PWA 注册、CSP 下建/加入房间、哥俩好、history/export/delete、首页重叠 | `node scripts/prod-check.mjs` |
 
 注意：
@@ -358,10 +360,10 @@ curl -I https://love.zulogic.cn/
 | v1.2.0 | 第 7 款游戏「哥俩好」；SQLite 持久化（`store.mjs`）+ 历史战绩 + 「我们的回忆」；动作 cid/ack 队列；错误边界；PWA/OG/SW；Vitest 84 例接入 CI |
 | v1.3.0 | 用户协议 + 隐私政策 + 首次同意；「我的数据」导出/注销（`/export`、`DELETE`）；一键备份脚本 + systemd timer + `docs/BACKUP.md`；单测 90 例 |
 | v1.3.1 | 修首页矮屏溢出（老用户三行链接被玩法条遮住）；视觉脚本加「老用户回首页」场景与重叠断言 |
-| v1.4.0 | 单游戏解耦；你画我猜隐藏候选词、聊天卡聊天框、心有灵犀灵感词、你懂我吗题库、哥俩好实时跳跃 |
-| v1.4.1 | 聊天卡手机端布局修复 |
-| v1.4.2 | 哥俩好移除落点预览与抛物线 |
-| v1.5.0 | 哥俩好延迟图标、60fps/本地跳跃预测、绳子 300 上限与拖拽、连点救援、金币、游戏文字防误选 |
+| v1.4.0 | 每款游戏完全解耦（元数据 / 题库 / 独立 CSS / 单测 / 冒烟 / 文档各自一份）；新增 `view(data, seat)` 按座位藏信息；画猜、聊天卡、默契题库扩容；哥俩好改实时双人 |
+| v1.4.1 / v1.4.2 | 聊天卡手机端紧凑布局；哥俩好移除落点预览，只保留蓄力条 |
+| v1.5.0 | 新增第 8 款「一起拆弹」（信息不对称合作）与第 9 款「爱情飞行棋」（掷骰 + 真心话 / 小任务 / 撒娇卡）；修 `npm run test:game` 在 Windows + Node 20+ 的 spawn 失败；视觉脚本覆盖两款新游戏 |
+| v1.6.0 | 哥俩好延迟图标、60fps/本地跳跃预测、绳子 300 上限与拖拽、连点救援、金币、游戏文字防误选 |
 
 ---
 
@@ -369,7 +371,7 @@ curl -I https://love.zulogic.cn/
 
 1. **单实例**：房间在内存 + 本地 SQLite；多实例需 Redis 广播 + Postgres。
 2. **token 即身份**：换设备/清缓存后无法找回纪念册（没有账号体系）；这是「不用注册」的代价。
-3. **无文字聊天/语音**，只有表情反应；你画我猜不留存画作原图。
+3. **没有语音**；文字聊天只在「深夜聊天卡」里，其他游戏只有表情反应；你画我猜不留存画作原图。
 4. **`/metrics` 无鉴权**，仅适合内网或反代层限制来源。
 5. **没有告警**：只有日志与指标，出错要人肉看 `journalctl`。
 6. **备份不异地**：与应用同机，主机故障会同时丢。

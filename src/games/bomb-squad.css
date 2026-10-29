@@ -1,0 +1,854 @@
+/* 一起拆弹：只属于这个游戏的样式。
+   由 bomb-squad.tsx 直接 import，Vite 会把它打进这个游戏的按需 chunk。
+   共用样式（按钮、.stage 等）继续放在 src/styles.css。 */
+
+.bomb-stage {
+  max-width: 880px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 18px 12px;
+}
+
+.bomb-stage .stage-topline {
+  margin-bottom: 8px;
+  flex: none;
+}
+
+/* ================= HUD ================= */
+
+.bomb-hud {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: none;
+  margin-bottom: 10px;
+}
+
+.bomb-role {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff3e6;
+  border: 1.5px solid rgba(226, 87, 46, 0.35);
+  border-radius: 14px;
+  padding: 6px 12px;
+}
+
+.bomb-role.expert {
+  background: #eef5ff;
+  border-color: rgba(77, 157, 255, 0.42);
+}
+
+.bomb-role-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.bomb-role-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bomb-role-copy b {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.bomb-role-copy span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bomb-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 14px;
+  border-radius: 14px;
+  background: #fff8e1;
+  border: 1.5px solid rgba(58, 38, 24, 0.16);
+  flex: none;
+}
+
+.bomb-timer b {
+  font-family: var(--display);
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+}
+
+.bomb-timer span {
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+.bomb-timer.urgent {
+  background: #ffe6e3;
+  border-color: #e4572e;
+  color: #b32b12;
+  animation: bomb-pulse 1s ease-in-out infinite;
+}
+
+.bomb-strikes {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  align-items: flex-end;
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+  flex: none;
+}
+
+.bomb-strikes b {
+  color: #b32b12;
+}
+
+.bomb-strike-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.bomb-strike-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ffd9cd;
+  border: 1.5px solid #e4572e;
+}
+
+.bomb-strike-dots i.lost {
+  background: #e4572e;
+  box-shadow: 0 0 0 2px rgba(228, 87, 46, 0.16);
+}
+
+/* ================= 主体：内部滚动，不撑出页面滚动条 ================= */
+
+.bomb-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bomb-board,
+.bomb-manual {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.bomb-board::-webkit-scrollbar,
+.bomb-manual::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* ================= 拆弹员：面板 ================= */
+
+.bomb-plate {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.bomb-plate-item {
+  flex: 1 1 190px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: linear-gradient(135deg, #fff5ea, #ffe4d2);
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  padding: 7px 14px;
+  min-width: 0;
+}
+
+.bomb-plate-item > span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+.bomb-serial {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.1em;
+}
+
+.bomb-batteries {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.bomb-batteries i {
+  font-style: normal;
+}
+
+.bomb-batteries em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: 4px;
+}
+
+.bomb-modules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 9px;
+  align-items: start;
+  padding-bottom: 2px;
+}
+
+/* 手机端的模块切换标签；宽屏隐藏，三个模块直接并排 */
+.bomb-tabs {
+  display: none;
+}
+
+.bomb-tab {
+  font-family: inherit;
+  min-width: 0;
+  border: 1.5px solid rgba(58, 38, 24, 0.2);
+  background: #fffdf6;
+  color: var(--ink-2);
+  border-radius: 11px;
+  padding: 6px 4px;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.bomb-tab.active {
+  background: #ffe6d8;
+  border-color: #e4572e;
+  color: #b32b12;
+}
+
+.bomb-tab.done {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.bomb-module {
+  background: #fffdf6;
+  border: 2px solid rgba(58, 38, 24, 0.85);
+  border-radius: 18px;
+  padding: 9px 11px 11px;
+  box-shadow: 0 2px 0 rgba(58, 38, 24, 0.14);
+  min-width: 0;
+}
+
+.bomb-module.done {
+  opacity: 0.62;
+  background: #f3f1ea;
+  border-color: rgba(58, 38, 24, 0.28);
+  box-shadow: none;
+}
+
+.bomb-module-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.bomb-module-head b {
+  font-size: 13.5px;
+}
+
+.bomb-module-tip {
+  margin: 0 0 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.bomb-check {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2f9d70;
+  background: #e9fbf2;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.bomb-dot {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--ink-3);
+  border: 1px dashed rgba(58, 38, 24, 0.25);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+/* 剪线 */
+
+.bomb-wires {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 5px;
+  padding: 6px 2px 2px;
+}
+
+.bomb-wire {
+  background: none;
+  border: none;
+  padding: 0;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.bomb-wire-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.bomb-wire-line {
+  display: block;
+  width: 10px;
+  height: clamp(42px, 7vh, 62px);
+  border-radius: 6px;
+  background: var(--wire, #888);
+  border: 2px solid rgba(58, 38, 24, 0.55);
+  box-shadow: inset -2px 0 0 rgba(0, 0, 0, 0.12);
+  transition: transform 0.12s ease;
+}
+
+.bomb-wire.light .bomb-wire-line {
+  border-color: #9a8a7a;
+  box-shadow: inset 0 0 0 1px rgba(58, 38, 24, 0.12);
+}
+
+.bomb-wire:hover .bomb-wire-line {
+  transform: translateY(-3px);
+}
+
+.bomb-wire:active .bomb-wire-line {
+  transform: scaleY(0.94);
+}
+
+.bomb-wire-no {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+
+/* 符号 */
+
+.bomb-symbols {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.bomb-progress {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bomb-slot {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3ece0;
+  border: 1.5px dashed rgba(58, 38, 24, 0.22);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.bomb-slot.filled {
+  background: #fff0e3;
+  border-style: solid;
+  border-color: #e4572e;
+}
+
+.bomb-progress em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  margin-left: auto;
+}
+
+.bomb-symbol-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.bomb-symbol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: #fffdf6;
+  border: 1.5px solid rgba(58, 38, 24, 0.2);
+  border-radius: 13px;
+  padding: 6px 4px 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(58, 38, 24, 0.1);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.bomb-symbol:hover {
+  background: #fff2e6;
+}
+
+.bomb-symbol:active {
+  transform: scale(0.96);
+}
+
+.bomb-symbol span {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.bomb-symbol b {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+/* 开关 */
+
+.bomb-switches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bomb-switch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #fffdf6;
+  border: 1.5px solid rgba(58, 38, 24, 0.2);
+  border-radius: 13px;
+  padding: 5px 9px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bomb-switch:active {
+  background: #fff2e6;
+}
+
+.bomb-switch-track {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e3dacd;
+  border: 1.5px solid rgba(58, 38, 24, 0.28);
+  flex: none;
+  transition: background 0.15s ease;
+}
+
+.bomb-switch-track i {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fffdf6;
+  border: 1.5px solid rgba(58, 38, 24, 0.4);
+  transition: left 0.15s ease, background 0.15s ease;
+}
+
+.bomb-switch.up .bomb-switch-track {
+  background: #ffd8c5;
+}
+
+.bomb-switch.up .bomb-switch-track i {
+  left: 21px;
+  background: #e4572e;
+}
+
+.bomb-switch-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bomb-switch-label b {
+  font-size: 12.5px;
+}
+
+.bomb-switch-label em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.bomb-confirm {
+  margin-top: 2px;
+}
+
+/* ================= 专家：手册 ================= */
+
+.bomb-manual {
+  background: #fffaf0;
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+  padding: 10px 14px 12px;
+}
+
+.bomb-manual-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bomb-manual-top b {
+  font-size: 14px;
+}
+
+.bomb-manual-warn {
+  font-size: 11px;
+  font-weight: 800;
+  color: #b32b12;
+  background: #ffe6e3;
+  border: 1px solid #f5b0a2;
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.bomb-manual-intro {
+  margin: 6px 0 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.bomb-manual-status {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.bomb-status {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-2);
+  background: #fff;
+  border: 1.5px solid rgba(58, 38, 24, 0.18);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.bomb-status.done {
+  color: #2f9d70;
+  border-color: #8fd6b7;
+  background: #e9fbf2;
+}
+
+.bomb-manual-section {
+  border-top: 1.5px dashed rgba(58, 38, 24, 0.2);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.bomb-manual-section header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bomb-manual-icon {
+  font-size: 15px;
+}
+
+.bomb-manual-section header b {
+  font-size: 13.5px;
+}
+
+.bomb-manual-section header em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.bomb-group {
+  margin-top: 6px;
+}
+
+.bomb-when {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #8a3a12;
+  background: #ffe9d6;
+  border: 1px solid #f5b892;
+  border-radius: 8px;
+  padding: 1px 8px;
+}
+
+.bomb-group ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bomb-group li {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.bomb-manual-section.s-symbols .bomb-when {
+  color: #5a2fa8;
+  background: #ede2ff;
+  border-color: #c9a9ff;
+}
+
+.bomb-manual-section.s-switches .bomb-when {
+  color: #0d5a86;
+  background: #e0f1ff;
+  border-color: #a5d3f5;
+}
+
+.bomb-manual-foot {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #b32b12;
+  text-align: center;
+}
+
+/* ================= 结算 ================= */
+
+.bomb-result {
+  font-family: var(--display);
+  font-size: 18px;
+  text-align: center;
+  margin: 0 0 4px;
+  position: relative;
+}
+
+.bomb-result.defused {
+  color: #2f8f6a;
+}
+
+.bomb-result.boom,
+.bomb-result.timeout {
+  color: #c9364f;
+}
+
+@keyframes bomb-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(228, 87, 46, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(228, 87, 46, 0);
+  }
+}
+
+/* ================= 响应式 ================= */
+
+@media (max-width: 980px) {
+  .bomb-stage {
+    max-width: 100%;
+  }
+}
+
+/* 宽屏时把三个模块拉满剩余高度，别让炸弹面板下半截空着 */
+@media (min-width: 981px) {
+  .bomb-board {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bomb-modules {
+    flex: 1 1 auto;
+    align-items: stretch;
+    align-content: stretch;
+    grid-auto-rows: 1fr;
+  }
+
+  .bomb-module {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bomb-wire-line {
+    height: clamp(70px, 16vh, 140px);
+  }
+
+  .bomb-wires {
+    flex: 1 1 auto;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 8px;
+  }
+
+  .bomb-symbols,
+  .bomb-switches {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .bomb-stage {
+    padding: 12px 12px 10px;
+  }
+
+  .bomb-role {
+    flex-basis: 100%;
+  }
+
+  .bomb-timer b {
+    font-size: 20px;
+  }
+
+  .bomb-strikes {
+    margin-left: 0;
+    align-items: flex-start;
+  }
+
+  .bomb-modules {
+    grid-template-columns: 1fr;
+    display: block;
+  }
+
+  .bomb-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex: none;
+  }
+
+  .bomb-module {
+    display: none;
+  }
+
+  .bomb-module.active {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bomb-switches {
+    gap: 5px;
+  }
+
+  .bomb-switch {
+    padding: 4px 8px;
+  }
+
+  .bomb-confirm {
+    padding: 7px 12px;
+    font-size: 14px;
+  }
+
+  /* 序列号和电池并排，矮屏给模块多留一点高度 */
+  .bomb-plate {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .bomb-plate-item {
+    flex: none;
+    padding: 6px 10px;
+  }
+
+  .bomb-serial {
+    font-size: 19px;
+  }
+
+  .bomb-batteries {
+    font-size: 15px;
+  }
+
+  /* 右下角有表情浮球，提示语别钻到它下面；小屏直接隐藏，交给顶部角色卡说明 */
+  .bomb-stage .stage-hint {
+    display: none;
+  }
+
+  .bomb-wire-line {
+    height: 42px;
+  }
+
+  .bomb-symbol span {
+    font-size: 18px;
+  }
+
+  .bomb-group li {
+    font-size: 12.5px;
+  }
+}
+
+@media (max-width: 400px) {
+  .bomb-hud {
+    gap: 6px;
+  }
+
+  .bomb-role-copy span {
+    font-size: 11px;
+  }
+
+  .bomb-timer {
+    padding: 3px 10px;
+  }
+
+  .bomb-plate-item {
+    flex-basis: auto;
+    padding: 5px 8px;
+  }
+
+  .bomb-serial {
+    font-size: 20px;
+  }
+
+  .bomb-manual {
+    padding: 8px 10px 10px;
+  }
+
+  .bomb-manual-section header em {
+    flex-basis: 100%;
+  }
+}

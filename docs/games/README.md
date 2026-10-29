@@ -11,6 +11,8 @@
 | [爱心五子棋](gomoku.md) | `gomoku` | 可玩 |
 | [爱心跳棋](checkers.md) | `checkers` | 可玩 |
 | [哥俩好](brothers.md) | `brothers` | 可玩 |
+| [一起拆弹](bomb-squad.md) | `bomb-squad` | 可玩 |
+| [爱情飞行棋](love-flight.md) | `love-flight` | 可玩 |
 
 ## 通用规则（每款游戏都一样）
 

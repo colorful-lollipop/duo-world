@@ -395,6 +395,65 @@ try {
   await A.screenshot({ path: `${shots}/brothers-jump.png`, fullPage: true });
   await B.screenshot({ path: `${shots}/brothers-b.png`, fullPage: true });
 
+  // 一起拆弹（信息不对称：A 拆弹员 / B 专家）
+  await A.getByRole("button", { name: /回大厅/ }).click();
+  await A.getByRole("button", { name: "回大厅" }).last().click();
+  await A.waitForSelector(".pair-banner");
+  await sleep(300);
+  await A.locator(".picker-card", { hasText: "一起拆弹" }).click();
+  await sleep(250);
+  await A.getByRole("button", { name: /开始游戏/ }).click();
+  await A.waitForSelector(".bomb-stage");
+  await sleep(500);
+  await dims(A, "bomb-defuser");
+  await A.screenshot({ path: `${shots}/bomb-defuser.png`, fullPage: true });
+  await B.waitForSelector(".bomb-manual");
+  await B.screenshot({ path: `${shots}/bomb-expert.png`, fullPage: true });
+  await A.setViewportSize({ width: 1280, height: 800 });
+  await B.setViewportSize({ width: 1280, height: 800 });
+  await sleep(350);
+  await dims(A, "bomb-desktop");
+  await A.screenshot({ path: `${shots}/bomb-desktop.png`, fullPage: true });
+  await B.screenshot({ path: `${shots}/bomb-expert-desktop.png`, fullPage: true });
+  await B.setViewportSize({ width: 420, height: 900 });
+  await A.setViewportSize({ width: 375, height: 667 });
+  await sleep(350);
+  await dims(A, "bomb-small");
+  await A.screenshot({ path: `${shots}/bomb-small.png`, fullPage: true });
+  await A.setViewportSize({ width: 420, height: 900 });
+  await sleep(200);
+
+  // 爱情飞行棋（掷骰 + 事件卡）
+  await A.getByRole("button", { name: /回大厅/ }).click();
+  await A.getByRole("button", { name: "回大厅" }).last().click();
+  await A.waitForSelector(".pair-banner");
+  await sleep(300);
+  await A.locator(".picker-card", { hasText: "爱情飞行棋" }).click();
+  await sleep(250);
+  await A.getByRole("button", { name: /开始游戏/ }).click();
+  await A.waitForSelector(".lf-board");
+  await sleep(500);
+  await dims(A, "love-flight");
+  await A.screenshot({ path: `${shots}/love-flight.png`, fullPage: true });
+  await A.locator(".lf-roll").click();
+  await sleep(600);
+  await A.screenshot({ path: `${shots}/love-flight-rolled.png`, fullPage: true });
+  if (await A.locator(".lf-event-card").count()) {
+    await A.screenshot({ path: `${shots}/love-flight-event.png`, fullPage: true });
+    await A.locator(".lf-event-button").click();
+    await sleep(500);
+  }
+  await A.setViewportSize({ width: 1280, height: 800 });
+  await sleep(350);
+  await dims(A, "love-flight-desktop");
+  await A.screenshot({ path: `${shots}/love-flight-desktop.png`, fullPage: true });
+  await A.setViewportSize({ width: 375, height: 667 });
+  await sleep(350);
+  await dims(A, "love-flight-small");
+  await A.screenshot({ path: `${shots}/love-flight-small.png`, fullPage: true });
+  await A.setViewportSize({ width: 420, height: 900 });
+  await sleep(200);
+
   // 纪念册（历史战绩弹窗）
   await A.getByRole("button", { name: /回大厅/ }).click();
   await A.getByRole("button", { name: "回大厅" }).last().click();

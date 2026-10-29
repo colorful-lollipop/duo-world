@@ -1,0 +1,39 @@
+{
+  "order": 80,
+  "name": "一起拆弹",
+  "emoji": "💣",
+  "tagline": "一个人拆，一个人念手册，只能靠嘴说",
+  "intro": "炸弹面板只有一个人看得见，说明书只在另一个人手里。拆弹员把看到的颜色、符号、序列号说清楚，专家在手册里找出对应的那条规则。三分钟，三个模块，说错一句就炸。",
+  "rules": [
+    "拆弹员看炸弹，专家看手册，不能互看屏幕",
+    "拆弹员把颜色、符号、序列号念给专家听",
+    "专家按手册指挥，拆完三个模块就赢"
+  ],
+  "tags": ["合作", "沟通"],
+  "duration": "3–5 分钟",
+  "net": "延迟友好",
+  "gradient": ["#FFB4A2", "#E4572E"],
+  "settings": [
+    {
+      "type": "select",
+      "key": "difficulty",
+      "label": "难度",
+      "default": "normal",
+      "options": [
+        { "value": "easy", "label": "简单 · 5 分钟 / 4 次机会" },
+        { "value": "normal", "label": "标准 · 3 分 30 秒 / 3 次机会" },
+        { "value": "hard", "label": "硬核 · 2 分 30 秒 / 2 次机会" }
+      ]
+    },
+    {
+      "type": "select",
+      "key": "defuser",
+      "label": "谁来拆弹",
+      "default": 0,
+      "options": [
+        { "value": 0, "label": "创建者拆弹" },
+        { "value": 1, "label": "加入者拆弹" }
+      ]
+    }
+  ]
+}
