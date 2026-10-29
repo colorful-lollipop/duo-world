@@ -54,12 +54,31 @@ function endTurn(d) {
 }
 
 /**
+ * 记录一次「可见位移」，只给客户端做飞行动画用，不参与任何胜负/回合判定。
+ * from / to 都带两个人的位置，交换位置时两条航线可以同时补间。
+ * 旧版本存档没有这个字段，客户端会退回比较 pos 的变化。
+ */
+function recordMove(d, before, source, kind, seat, now) {
+  d.moveSeq = (d.moveSeq || 0) + 1;
+  d.lastMove = {
+    id: d.moveSeq,
+    source,
+    seat,
+    kind,
+    from: [before[0], before[1]],
+    to: [d.pos[0], d.pos[1]],
+    at: now ?? Date.now()
+  };
+}
+
+/**
  * 掷骰子的纯推进（不含随机数）：把 value 应用到 seat 的棋子上。
  * action 内部调用它；单测可以直接调，用 room 参数检查胜场是否累加。
  */
 export function applyDice(d, seat, value, now = Date.now(), room = null) {
   if (!d || (seat !== 0 && seat !== 1)) return null;
   const roll = Math.max(1, Math.min(6, Math.round(Number(value)) || 1));
+  const before = [d.pos[0], d.pos[1]];
   const from = d.pos[seat];
   const to = Math.min(from + roll, d.length - 1);
   const kind = d.board[to]?.kind || "plain";
@@ -68,6 +87,7 @@ export function applyDice(d, seat, value, now = Date.now(), room = null) {
   d.pos[seat] = to;
   d.rolls[seat]++;
   d.history.push({ seat, roll, from, to, kind });
+  recordMove(d, before, "roll", kind, seat, now);
 
   if (to === d.length - 1) {
     win(d, seat, now, room);
@@ -119,8 +139,10 @@ function resolveEvent(room, d, seat, now) {
   }
 
   if (ev.kind === "forward") {
+    const before = [d.pos[0], d.pos[1]];
     const to = Math.min(d.pos[seat] + 2, d.length - 1);
     d.pos[seat] = to;
+    recordMove(d, before, "event", ev.kind, seat, now);
     d.event = null;
     if (to === d.length - 1) {
       win(d, seat, now, room);
@@ -131,16 +153,20 @@ function resolveEvent(room, d, seat, now) {
   }
 
   if (ev.kind === "back") {
+    const before = [d.pos[0], d.pos[1]];
     d.pos[seat] = Math.max(0, d.pos[seat] - 2);
+    recordMove(d, before, "event", ev.kind, seat, now);
     endTurn(d);
     return null;
   }
 
   if (ev.kind === "swap") {
+    const before = [d.pos[0], d.pos[1]];
     const mine = d.pos[seat];
     const theirs = d.pos[otherSeat(seat)];
     d.pos[seat] = theirs;
     d.pos[otherSeat(seat)] = mine;
+    recordMove(d, before, "event", ev.kind, seat, now);
     endTurn(d);
     return null;
   }
@@ -167,6 +193,8 @@ export default {
       winner: null,
       closing: null,
       history: [],
+      moveSeq: 0,
+      lastMove: null,
       rolls: [0, 0],
       events: 0,
       startedAt: Date.now(),

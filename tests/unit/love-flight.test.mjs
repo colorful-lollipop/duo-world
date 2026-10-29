@@ -73,6 +73,8 @@ describe("爱情飞行棋 · 棋盘", () => {
     expect(d.rolls).toEqual([0, 0]);
     expect(d.events).toBe(0);
     expect(d.history).toEqual([]);
+    expect(d.lastMove).toBeNull();
+    expect(d.moveSeq).toBe(0);
 
     expect(newGame({ tiles: 999 }).d.length).toBe(24);
   });
@@ -112,6 +114,38 @@ describe("爱情飞行棋 · 掷骰推进", () => {
     expect(d.turn).toBe(1);
     expect(d.round).toBe(1);
     expect(d.history).toEqual([{ seat: 0, roll: 5, from: 0, to: 5, kind: "plain" }]);
+    expect(d.lastMove).toMatchObject({
+      id: 1,
+      source: "roll",
+      seat: 0,
+      kind: "plain",
+      from: [0, 0],
+      to: [5, 0],
+    });
+  });
+
+  it("lastMove 记录事件前进/后退/交换的实际位移，但 history 仍只记掷骰", () => {
+    const { room, d } = newGame();
+    d.pos = [5, 0];
+    applyDice(d, 0, 2, 1000, room); // 5 -> 7 back，触发事件
+    expect(d.lastMove).toMatchObject({ id: 1, source: "roll", kind: "back", from: [5, 0], to: [7, 0] });
+    expect(game.action(room, 0, { type: "resolve" }, 1100)).toBeNull();
+    expect(d.lastMove).toMatchObject({ id: 2, source: "event", kind: "back", from: [7, 0], to: [5, 0] });
+    expect(d.history).toHaveLength(1);
+
+    d.turn = 0;
+    d.pos = [8, 3];
+    applyDice(d, 0, 2, 1200, room); // 8 -> 10 swap，触发事件
+    const beforeSwap = d.lastMove.id;
+    expect(game.action(room, 0, { type: "resolve" }, 1300)).toBeNull();
+    expect(d.lastMove).toMatchObject({
+      id: beforeSwap + 1,
+      source: "event",
+      kind: "swap",
+      from: [10, 3],
+      to: [3, 10],
+    });
+    expect(d.history).toHaveLength(2);
   });
 
   it("踩到真心话进入 event，抽一张不重复的卡", () => {
@@ -168,6 +202,7 @@ describe("爱情飞行棋 · 掷骰推进", () => {
     expect(d.phase).toBe("over");
     expect(d.winner).toBe(0);
     expect(d.closing.forSeat).toBe(1);
+    expect(d.lastMove).toMatchObject({ source: "event", kind: "forward", from: [16, 5], to: [17, 5] });
   });
 
   it("超过终点时夹到最后一格并获胜", () => {

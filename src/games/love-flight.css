@@ -3,16 +3,21 @@
    共用样式（按钮、弹窗、.stage 等）继续放在 src/styles.css。 */
 
 .love-flight-stage {
-  /* 棋盘按剩余高度缩放，整个舞台固定高度、不出现页面滚动条 */
-  max-width: 800px;
+  max-width: 880px;
   height: 100%;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px 12px;
+  gap: 7px;
+  padding: 13px 16px 12px;
   position: relative;
+  overflow: hidden;
+}
+
+.lf-topline {
+  margin-bottom: 1px;
+  flex: 0 0 auto;
 }
 
 /* ================= 玩家条 ================= */
@@ -25,27 +30,44 @@
 }
 
 .lf-player {
+  --seat-color: #ff6b81;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
-  padding: 4px 9px;
-  border: 1.5px solid rgba(58, 38, 24, 0.16);
-  border-radius: 14px;
-  background: #fff9ec;
+  padding: 3px 9px 3px 5px;
+  border: 1.5px solid rgba(58, 38, 24, 0.15);
+  border-radius: 15px;
+  background: linear-gradient(135deg, #fffdf7, #fff8ec);
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.lf-player .critter {
-  width: clamp(26px, 5vmin, 34px);
-  height: clamp(26px, 5vmin, 34px);
-  flex: none;
+.lf-player::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--seat-color);
+  opacity: 0.55;
 }
 
 .lf-player.is-turn {
-  border-color: #f4a261;
-  background: #fff2d6;
-  box-shadow: 0 0 0 2px rgba(244, 162, 97, 0.22);
+  border-color: var(--seat-color);
+  background: linear-gradient(135deg, #fffdf7, #fff4df);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--seat-color) 18%, transparent);
+}
+
+.lf-player.is-flying {
+  background: linear-gradient(135deg, #f8fdff, #eef9ff);
+}
+
+.lf-player.is-flying::before {
+  opacity: 0.95;
 }
 
 .lf-player.me .lf-player-info b::after {
@@ -53,6 +75,23 @@
   font-size: 9px;
   color: var(--ink-3);
   font-weight: 700;
+}
+
+.lf-mini-plane {
+  width: clamp(38px, 6.2vmin, 48px);
+  height: auto;
+  flex: none;
+  overflow: visible;
+  filter: drop-shadow(0 2px 1px rgba(58, 38, 24, 0.12));
+}
+
+.lf-player.is-turn .lf-mini-plane,
+.lf-player.is-flying .lf-mini-plane {
+  animation: lf-mini-bob 1.5s ease-in-out infinite;
+}
+
+.lf-player.is-flying .lf-mini-plane {
+  animation-duration: 0.68s;
 }
 
 .lf-player-info {
@@ -64,6 +103,7 @@
 
 .lf-player-info b {
   font-size: 12.5px;
+  line-height: 1.25;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -71,7 +111,8 @@
 }
 
 .lf-player-info span {
-  font-size: 10px;
+  font-size: 9.5px;
+  line-height: 1.25;
   color: var(--ink-3);
   white-space: nowrap;
   overflow: hidden;
@@ -81,17 +122,20 @@
 .lf-turn-badge {
   margin-left: auto;
   flex: none;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 800;
-  color: #8a4b12;
-  background: #ffe2b4;
-  border: 1.5px solid rgba(244, 162, 97, 0.55);
+  color: #76400f;
+  background: #ffe5b8;
+  border: 1.5px solid rgba(233, 164, 70, 0.55);
   border-radius: 999px;
-  padding: 2px 7px;
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
-.lf-hop {
-  animation: lf-hop 1.1s ease-in-out infinite;
+.lf-player.is-flying .lf-turn-badge {
+  color: #15658a;
+  background: #e3f6ff;
+  border-color: rgba(77, 157, 255, 0.45);
 }
 
 /* ================= 轮到谁 ================= */
@@ -102,178 +146,190 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 12px;
+  min-height: 18px;
+  font-size: 11.5px;
   font-weight: 800;
   color: var(--ink-2);
   flex: 0 0 auto;
 }
 
 .lf-turn-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #f4a261;
   box-shadow: 0 0 0 0 rgba(244, 162, 97, 0.5);
   animation: lf-dot 1.6s ease-out infinite;
 }
 
-/* ================= 棋盘 ================= */
+/* ================= 航线地图 ================= */
 
 .lf-board-wrap {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  border: 2px solid var(--ink);
+  border-radius: 23px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #bde9ff 0%, #e5f5ff 52%, #ffe8ed 100%);
+  box-shadow: 0 4px 0 rgba(58, 38, 24, 0.14), inset 0 0 46px rgba(255, 255, 255, 0.52);
 }
 
-.lf-board {
-  --lf-token: clamp(17px, 3.8vmin, 26px);
+.lf-map {
   position: absolute;
   inset: 0;
-  max-width: 680px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(var(--rows, 4), minmax(0, 1fr));
-  gap: clamp(3px, 0.8vmin, 7px);
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.lf-cell {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  padding: 6px 2px 4px;
-  border: 1.5px solid rgba(58, 38, 24, 0.16);
-  border-radius: clamp(7px, 1.4vmin, 13px);
-  background: #fffaf0;
-  overflow: hidden;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.lf-cell-index {
+.lf-map-status {
   position: absolute;
-  top: 2px;
-  left: 4px;
+  top: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  border-radius: 999px;
+  padding: 4px 9px;
   font-size: 8.5px;
   font-weight: 800;
-  line-height: 1;
-  color: rgba(58, 38, 24, 0.38);
-}
-
-.lf-cell-main {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.lf-cell-emoji {
-  font-size: clamp(12px, 2.4dvh, 24px);
-  line-height: 1;
-}
-
-.lf-cell-label {
-  font-size: clamp(8px, 1.1dvh, 11px);
-  line-height: 1.1;
-  color: var(--ink-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.lf-dot {
-  width: clamp(6px, 1.1vmin, 9px);
-  height: clamp(6px, 1.1vmin, 9px);
-  border-radius: 50%;
-  background: rgba(58, 38, 24, 0.18);
-}
-
-/* 不同格子的配色 */
-.lf-cell.k-start {
-  background: #ffe6bd;
-  border-color: rgba(244, 162, 97, 0.6);
-}
-
-.lf-cell.k-finish {
-  background: #ffd9e3;
-  border-color: rgba(232, 54, 79, 0.45);
-}
-
-.lf-cell.k-finish .lf-cell-emoji {
-  animation: lf-beat 1.7s ease-in-out infinite;
-}
-
-.lf-cell.k-truth {
-  background: #ddf0ff;
-}
-
-.lf-cell.k-task {
-  background: #ffe8c7;
-}
-
-.lf-cell.k-forward {
-  background: #ddf6dd;
-}
-
-.lf-cell.k-back {
-  background: #efe4ff;
-}
-
-.lf-cell.k-swap {
-  background: #ffe1ef;
-}
-
-.lf-cell.k-again {
-  background: #fff3c4;
-}
-
-.lf-cell.is-visited {
-  background-image: linear-gradient(180deg, rgba(244, 162, 97, 0.18), rgba(244, 162, 97, 0.06));
-}
-
-.lf-cell.is-last {
-  box-shadow: inset 0 0 0 2px rgba(244, 162, 97, 0.9);
-}
-
-/* 棋子（和 TA 同一格时并排） */
-.lf-tokens {
-  position: absolute;
-  left: 50%;
-  bottom: 1px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  letter-spacing: 0.04em;
+  color: rgba(58, 86, 104, 0.74);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(4px);
   pointer-events: none;
-  z-index: 2;
+  white-space: nowrap;
 }
 
-.lf-token.critter {
-  width: var(--lf-token);
-  height: var(--lf-token);
-  flex: none;
+.lf-map-status.is-flying {
+  color: #8a4b12;
+  background: rgba(255, 241, 197, 0.9);
+  border-color: rgba(233, 164, 70, 0.34);
+  animation: lf-status-pulse 1.2s ease-in-out infinite;
 }
 
-.lf-token.critter + .lf-token.critter {
-  margin-left: -3px;
+.lf-route-sand,
+.lf-route-shadow,
+.lf-route-dash {
+  pointer-events: none;
 }
 
-.lf-token.is-active {
-  animation: lf-hop 0.9s ease-in-out infinite;
-  filter: drop-shadow(0 0 4px rgba(244, 162, 97, 0.9));
+.lf-route-dash {
+  animation: lf-dash-flow 16s linear infinite;
 }
 
-.lf-cell.has-token .lf-cell-label {
-  opacity: 0;
+.lf-route-arrows {
+  pointer-events: none;
 }
 
-.lf-cell.has-token .lf-cell-main {
-  transform: translateY(-2px);
+.lf-station {
+  pointer-events: none;
+}
+
+.lf-station-disc {
+  filter: drop-shadow(0 2px 1px rgba(58, 38, 24, 0.1));
+}
+
+.lf-station.is-visited .lf-station-disc {
+  filter: drop-shadow(0 2px 1px rgba(58, 38, 24, 0.12)) saturate(1.06);
+}
+
+.lf-station.is-last .lf-station-halo {
+  stroke: #e8364f;
+  opacity: 0.72;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lf-station-ping 1.7s ease-out infinite;
+}
+
+.lf-station.has-plane .lf-station-halo {
+  opacity: 0.62;
+}
+
+.lf-cell-name {
+  paint-order: stroke;
+  stroke: rgba(255, 253, 245, 0.88);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.lf-cell-num {
+  paint-order: stroke;
+  stroke: rgba(255, 253, 245, 0.7);
+  stroke-width: 2px;
+  pointer-events: none;
+}
+
+.lf-progress {
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.lf-trail {
+  pointer-events: none;
+  filter: blur(0.3px);
+}
+
+/* ================= 小飞机 ================= */
+
+.lf-plane {
+  --plane-color: #ff6b81;
+  pointer-events: none;
+}
+
+.lf-plane.is-turn .lf-plane-body {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--plane-color) 74%, transparent));
+}
+
+.lf-plane.is-turn .lf-plane-hover {
+  animation: lf-plane-bob 2.2s ease-in-out infinite;
+}
+
+.lf-plane.is-moving .lf-plane-hover {
+  animation-duration: 0.62s;
+}
+
+.lf-plane.is-moving .lf-plane-shadow {
+  opacity: 0.1;
+}
+
+.lf-plane.is-turn .lf-plane-shadow {
+  fill: var(--plane-color);
+  opacity: 0.24;
+}
+
+.lf-prop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lf-prop-spin 2.8s linear infinite;
+}
+
+.lf-plane.is-turn .lf-prop {
+  animation-duration: 0.54s;
+}
+
+.lf-plane.is-moving .lf-prop {
+  animation-duration: 0.14s;
+}
+
+.lf-mini-plane .lf-prop {
+  animation-duration: 3.4s;
+}
+
+.lf-plane-wake {
+  opacity: 0.14;
+}
+
+.lf-plane.is-turn .lf-plane-wake {
+  opacity: 0.5;
+  animation: lf-wake 1.4s ease-in-out infinite;
+}
+
+.lf-plane.is-moving .lf-plane-wake {
+  opacity: 0.72;
+  animation-duration: 0.5s;
 }
 
 /* ================= 骰子 / 操作区 ================= */
@@ -287,8 +343,8 @@
 
 .lf-die {
   flex: none;
-  width: clamp(44px, 7.5vmin, 56px);
-  height: clamp(44px, 7.5vmin, 56px);
+  width: clamp(44px, 7.1vmin, 54px);
+  height: clamp(44px, 7.1vmin, 54px);
   border: 2px solid var(--ink);
   border-radius: 14px;
   background: #fff7e2;
@@ -304,16 +360,20 @@
   animation: lf-roll 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
 
-.lf-die-face {
-  font-size: clamp(19px, 3.4vmin, 26px);
-  font-weight: 800;
-  color: var(--ink);
+.lf-die-svg {
+  width: clamp(26px, 4.3vmin, 33px);
+  height: clamp(26px, 4.3vmin, 33px);
+}
+
+.lf-die-empty {
+  font-size: clamp(19px, 3.2vmin, 25px);
 }
 
 .lf-die-caption {
   margin-top: 3px;
-  font-size: 8.5px;
+  font-size: 8px;
   color: var(--ink-3);
+  white-space: nowrap;
 }
 
 .lf-control-main {
@@ -327,11 +387,11 @@
 
 .lf-hint {
   margin: 4px 0 0;
-  font-size: 10.5px;
-  line-height: 1.4;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
-/* ================= 事件卡（盖住棋盘，挡住误触） ================= */
+/* ================= 事件卡（等飞机落地后再盖住棋盘） ================= */
 
 .lf-event-layer {
   position: absolute;
@@ -340,23 +400,24 @@
   padding: 16px;
   display: grid;
   place-items: center;
-  background: rgba(58, 38, 24, 0.34);
+  background: rgba(44, 41, 50, 0.32);
   backdrop-filter: blur(2px);
   animation: lf-fade 0.18s ease both;
 }
 
 .lf-event-card {
+  position: relative;
   width: min(100%, 380px);
   max-height: 100%;
   overflow-y: auto;
   scrollbar-width: none;
   text-align: center;
-  padding: 16px 20px 16px;
+  padding: 18px 22px 17px;
   background: #fffaf0;
   border: 2px solid var(--ink);
-  border-radius: 22px;
+  border-radius: 23px;
   box-shadow: 0 6px 0 rgba(58, 38, 24, 0.2);
-  animation: lf-pop 0.22s ease both;
+  animation: lf-pop 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
 }
 
 .lf-event-card::-webkit-scrollbar {
@@ -388,6 +449,20 @@
   background: #fffae0;
 }
 
+.lf-event-stamp {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  transform: rotate(6deg);
+  padding: 2px 6px;
+  border: 1.5px dashed rgba(232, 54, 79, 0.36);
+  border-radius: 5px;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(190, 54, 81, 0.55);
+}
+
 .lf-event-emoji {
   display: block;
   font-size: 38px;
@@ -402,14 +477,8 @@
   color: var(--ink-3);
 }
 
-.lf-event-card h3 {
-  margin: 4px 0 8px;
-  font-size: 18px;
-  color: var(--ink);
-}
-
 .lf-event-text {
-  margin: 0 0 12px;
+  margin: 8px 0 12px;
   font-size: 14px;
   line-height: 1.7;
   color: var(--ink-2);
@@ -468,23 +537,73 @@
 
 /* ================= 动画 ================= */
 
-@keyframes lf-hop {
+@keyframes lf-mini-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-2.5px) rotate(1deg);
+  }
+}
+
+@keyframes lf-plane-bob {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-4px);
+    transform: translateY(-5px);
   }
 }
 
-@keyframes lf-beat {
+@keyframes lf-prop-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lf-wake {
   0%,
   100% {
-    transform: scale(1);
+    opacity: 0.22;
   }
   50% {
+    opacity: 0.62;
+  }
+}
+
+@keyframes lf-dash-flow {
+  to {
+    stroke-dashoffset: -180;
+  }
+}
+
+@keyframes lf-station-ping {
+  0% {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+  70% {
     transform: scale(1.14);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.14);
+    opacity: 0;
+  }
+}
+
+@keyframes lf-status-pulse {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-1px);
   }
 }
 
@@ -536,8 +655,18 @@
 
 @media (max-width: 720px) {
   .love-flight-stage {
-    padding: 12px 11px 10px;
-    gap: 7px;
+    padding: 10px 10px 9px;
+    gap: 5px;
+    border-radius: 23px;
+  }
+
+  .lf-topline {
+    margin-bottom: 0;
+  }
+
+  .lf-topline .round-chip {
+    font-size: 10px;
+    padding: 2px 8px;
   }
 
   .lf-players {
@@ -545,83 +674,157 @@
   }
 
   .lf-player {
-    padding: 3px 6px;
-    gap: 5px;
+    gap: 4px;
+    padding: 2px 6px 2px 4px;
     border-radius: 12px;
   }
 
+  .lf-mini-plane {
+    width: 35px;
+  }
+
   .lf-player-info b {
-    font-size: 11.5px;
+    font-size: 11px;
   }
 
   .lf-player-info span {
-    font-size: 9.5px;
+    font-size: 8.5px;
+  }
+
+  .lf-turn-badge {
+    font-size: 8px;
+    padding: 1px 5px;
   }
 
   .lf-turn {
-    font-size: 11.5px;
+    font-size: 10.5px;
+    min-height: 16px;
   }
 
-  .lf-cell {
-    border-radius: 9px;
-    padding: 4px 1px 2px;
+  .lf-board-wrap {
+    border-radius: 18px;
   }
 
-  .lf-cell-index {
-    top: 1px;
-    left: 3px;
-    font-size: 7.5px;
+  .lf-map-status {
+    top: 7px;
+    font-size: 8px;
+    padding: 3px 7px;
   }
 
-  .lf-event-layer {
-    padding: 12px;
+  .lf-cell-name,
+  .lf-cell-num {
+    display: none;
+  }
+
+  .lf-controls {
+    gap: 8px;
+  }
+
+  .lf-die {
+    border-radius: 12px;
   }
 
   .lf-hint {
-    font-size: 10px;
-    padding-right: 54px;
+    display: none;
+  }
+
+  .lf-event-layer {
+    padding: 10px;
+  }
+
+  .lf-event-card {
+    padding: 16px 17px 15px;
+    border-radius: 19px;
+  }
+
+  .lf-event-emoji {
+    font-size: 33px;
+  }
+
+  .lf-event-stamp {
+    top: 10px;
+    right: 11px;
+    font-size: 6.8px;
+  }
+
+  .lf-event-text {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.62;
   }
 }
 
 @media (max-width: 400px) {
-  .lf-board {
-    gap: 3px;
-  }
-
-  .lf-cell-label {
-    font-size: 7.5px;
+  .lf-player.me .lf-player-info b::after {
+    content: " · 你";
+    font-size: 8px;
   }
 
   .lf-turn-badge {
     display: none;
   }
 
-  .lf-event-card {
-    padding: 14px 15px 13px;
-    border-radius: 18px;
+  .lf-map-status {
+    display: none;
   }
 
-  .lf-event-emoji {
-    font-size: 32px;
+  .lf-player-info span {
+    font-size: 8px;
   }
 
-  .lf-event-card h3 {
-    font-size: 16px;
-  }
-
-  .lf-event-text {
+  .lf-roll {
     font-size: 13px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }
 
-@media (max-height: 700px) {
+@media (max-height: 700px) and (max-width: 980px) {
   .love-flight-stage {
-    gap: 6px;
-    padding-top: 10px;
-    padding-bottom: 8px;
+    gap: 4px;
+    padding-top: 8px;
+    padding-bottom: 7px;
   }
 
-  .lf-hint {
+  .lf-player {
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
+
+  .lf-mini-plane {
+    width: 32px;
+  }
+
+  .lf-turn {
+    min-height: 15px;
+  }
+
+  .lf-die {
+    width: 42px;
+    height: 42px;
+  }
+
+  .lf-die-svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .lf-die-caption {
+    font-size: 7px;
+  }
+}
+
+@media (max-height: 620px) {
+  .lf-players {
+    display: none;
+  }
+
+  .lf-turn {
+    min-height: 14px;
+    font-size: 10px;
+  }
+
+  .lf-map-status {
     display: none;
   }
 }
