@@ -387,6 +387,19 @@ describe("哥俩好 · 掉坑与绳子", () => {
     expect(Math.abs(d.mon[0].x - d.mon[1].x)).toBeLessThanOrEqual(d.rope);
   });
 
+  it("同伴被拖到很远时，挂着的人按 ropePullSpeed 逐步拉回而不是瞬移", () => {
+    const { room, d } = start();
+    d.mon[0] = { ...d.mon[0], x: 200, y: 0, alive: false };
+    d.mon[1] = { ...d.mon[1], x: 1000, y: 0, alive: true, lastJumpAt: 0 };
+    const before = d.mon[0].x;
+    expect(brothers.tick(room, d.startedAt + 1000)).toBe(true);
+    expect(d.mon[0].x).toBeGreaterThan(before);
+    expect(d.mon[0].x).toBeLessThan(d.mon[1].x - d.rope);
+    // 再 tick 几次后最终会回到绳长上限内
+    for (let i = 1; i < 8; i++) brothers.tick(room, d.startedAt + 1000 + i * 100);
+    expect(Math.abs(d.mon[0].x - d.mon[1].x)).toBeLessThanOrEqual(d.rope + 2);
+  });
+
   it("两个人都活着时，跳跃落点也不能超出绳长", () => {
     const { room, d } = start();
     put(d, 0, 200);

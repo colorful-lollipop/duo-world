@@ -257,7 +257,7 @@ export default {
       }
     }
 
-    // 绳子有最大长度：挂着的人永远不会离同伴超过 rope。
+    // 绳子有最大长度：超出时按 ropePullSpeed 逐步拉回，不瞬移。
     for (let i = 0; i < 2; i++) {
       const me = d.mon[i];
       const mate = d.mon[1 - i];

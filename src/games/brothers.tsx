@@ -249,6 +249,8 @@ const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
   const { ref: worldRef, size } = useSize<HTMLDivElement>();
   const [chargeStart, setChargeStart] = useState<number | null>(null);
   const [localJump, setLocalJump] = useState<JumpFx | null>(null);
+  /** 挂着的人被绳子拉动时，在两次 100ms 状态包之间做本地平滑，避免一格一格跳。 */
+  const hangSmoothRef = useRef<[number, number]>([NaN, NaN]);
   const serverNow = now();
   const gameRef = useRef(d);
   gameRef.current = d;
@@ -307,12 +309,15 @@ const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
         }
       }
       if (!m.alive) {
+        const prev = hangSmoothRef.current[i];
+        const smoothX = Number.isFinite(prev) ? prev + (m.x - prev) * 0.22 : m.x;
+        hangSmoothRef.current[i] = smoothX;
         const swing = Math.sin(beat / 260 + i * 1.9) * 9;
         const swayX = Math.sin(beat / 300 + i * 1.3) * 4;
         const reel = d.reel?.[i] || 0;
         const lift = (reel / 100) * 30;
         return {
-          x: m.x + swayX,
+          x: smoothX + swayX,
           feetWorld: m.y - HANG_DROP + lift,
           handWorld: m.y + lift,
           hang: true,
@@ -321,6 +326,7 @@ const BrothersStage = ({ room, seat, game, act, now, latency }: StageProps) => {
           jumping: false,
         };
       }
+      hangSmoothRef.current[i] = m.x;
       return { x: m.x, feetWorld: m.y, handWorld: m.y + HAND_OFFSET, hang: false, pose: "idle", swing: 0, jumping: false };
     },
     [d.mon, d.lastJump, d.lastPull, d.reel, localJump, serverNow, beat],
