@@ -18,6 +18,7 @@ export default async function run({ A, B, waitUntil, assert }) {
   assert(start.board[17].kind === "finish", "love-flight ends at finish tile");
   assert(start.turn === 0 && start.pos[0] === 0 && start.pos[1] === 0, "love-flight initial positions");
   assert(start.rolls[0] === 0 && start.rolls[1] === 0, "love-flight initial rolls");
+  assert(start.lastMove === null && start.moveSeq === 0, "love-flight initial move metadata");
 
   // 不是当前回合的座位掷骰子必须被拒绝，状态不变。
   const errBefore = B.errors.length;
@@ -63,6 +64,9 @@ export default async function run({ A, B, waitUntil, assert }) {
   assert(final.closing && final.closing.forSeat === 1 - final.winner, "love-flight closing for loser");
   assert(typeof final.closing.text === "string" && final.closing.text.length > 0, "love-flight closing text");
   assert(final.rolls[0] + final.rolls[1] > 0, "love-flight rolls counted");
+  assert(final.lastMove && Array.isArray(final.lastMove.from) && Array.isArray(final.lastMove.to), "love-flight lastMove shape");
+  assert(final.lastMove.to[final.winner] === final.length - 1, "love-flight lastMove ends on finish");
+  assert(final.moveSeq >= final.rolls[0] + final.rolls[1], "love-flight move metadata advances");
   console.log("done: love-flight roll / event / finish / closing");
 
   await waitUntil(() => findJournal(A, "love-flight"), "love-flight journal");
