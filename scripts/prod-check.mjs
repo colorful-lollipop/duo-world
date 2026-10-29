@@ -117,6 +117,40 @@ try {
   await A.screenshot({ path: "prod-brothers.png", fullPage: true });
   console.log("brothers stage ok");
 
+  // 一起拆弹：拆弹员看面板、专家看手册，两边视图必须不同
+  await A.getByRole("button", { name: /回大厅/ }).click();
+  await A.getByRole("button", { name: "回大厅" }).last().click();
+  await A.waitForSelector(".pair-banner");
+  await A.locator(".picker-card", { hasText: "一起拆弹" }).click();
+  await sleep(300);
+  await A.getByRole("button", { name: /开始游戏/ }).click();
+  await A.waitForSelector(".bomb-stage");
+  await B.waitForSelector(".bomb-manual");
+  const bombA = await A.evaluate(() => ({
+    serial: !!document.querySelector(".bomb-serial"),
+    manual: !!document.querySelector(".bomb-manual"),
+  }));
+  const bombB = await B.evaluate(() => ({
+    serial: !!document.querySelector(".bomb-serial"),
+    manual: !!document.querySelector(".bomb-manual"),
+  }));
+  if (!bombA.serial || bombA.manual) problems.push("拆弹员视图不对: " + JSON.stringify(bombA));
+  if (!bombB.manual || bombB.serial) problems.push("专家视图不对: " + JSON.stringify(bombB));
+  console.log("bomb-squad stage ok", { bombA, bombB });
+
+  // 爱情飞行棋：棋盘渲染 24 格
+  await A.getByRole("button", { name: /回大厅/ }).click();
+  await A.getByRole("button", { name: "回大厅" }).last().click();
+  await A.waitForSelector(".pair-banner");
+  await A.locator(".picker-card", { hasText: "爱情飞行棋" }).click();
+  await sleep(300);
+  await A.getByRole("button", { name: /开始游戏/ }).click();
+  await A.waitForSelector(".lf-board");
+  await B.waitForSelector(".lf-board");
+  const cells = await A.locator(".lf-cell").count();
+  if (cells !== 24) problems.push("飞行棋棋盘格数不对: " + cells);
+  console.log("love-flight stage ok", { cells });
+
   // 历史战绩（用本人 token）
   const token = await A.evaluate((c) => localStorage.getItem("duo.token." + c), code);
   const hist = await A.evaluate(
