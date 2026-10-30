@@ -1,6 +1,6 @@
 # AGENTS.md
 
-二人世界（duo-world）：给两个人做的在线小游戏屋。React 18 + Vite + TypeScript 前端，Node ESM（.mjs）+ Express + ws 后端；**9 款游戏**；状态在进程内存，落盘用 `node:sqlite`（`server/store.mjs`，无外部依赖，失败回退 JSON 文件），单实例，房间闲置 12h 清理但纪念册/战绩永久保留。代码和文案大量使用中文，全部为原创实现。
+二人世界（duo-world）：给两个人做的在线小游戏屋。React 18 + Vite + TypeScript 前端，Node ESM（.mjs）+ Express + ws 后端；**10 款游戏**；状态在进程内存，落盘用 `node:sqlite`（`server/store.mjs`，无外部依赖，失败回退 JSON 文件），单实例，房间闲置 12h 清理但纪念册/战绩永久保留。代码和文案大量使用中文；心动乒乓改编自 MIT 开源项目，署名与许可见 docs/games/ping-pong.md。
 
 ## 常用命令
 
@@ -10,7 +10,7 @@ npm run dev        # Vite 前端 5173（host 0.0.0.0，代理 /api 和 /ws 到 8
 npm run build      # tsc --noEmit && node scripts/check-games.mjs && vite build
 npm run serve      # build + start（http://localhost:8790）
 npm run start      # 只启动服务（需要先 build 出 dist）
-npm run smoke      # 端到端：起测试服务器(18790) → 双客户端跑完 9 个游戏 → 自动杀进程
+npm run smoke      # 端到端：起测试服务器(18790) → 双客户端跑完 10 个游戏 → 自动杀进程
 npm run smoke:game -- <id>  # 只跑一款游戏的端到端（端口可用 SMOKE_PORT 覆盖）
 npm run test       # Vitest 单测（tests/unit：各游戏规则 + store + rooms）
 npm run test:game -- <id>   # 只跑一款游戏的单测

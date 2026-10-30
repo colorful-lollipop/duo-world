@@ -24,6 +24,7 @@
 | 🔴 爱心跳棋 | 8×8 西洋跳棋：斜走、跳吃、连跳、升王 | 想再分个胜负 |
 | 💣 一起拆弹 | 一人看炸弹、一人念手册，只能靠嘴说，限时拆完三个模块 | 想一起紧张 |
 | 🎲 爱情飞行棋 | 掷骰子跑图，踩到真心话 / 小任务，先到终点赢，输家抽撒娇卡 | 想边玩边聊 |
+| 🏓 心动乒乓 | 实时双人挥拍，5 / 10 分制，断线暂停重连继续 | 想来一场轻松对决 |
 
 所有玩法都是 **两人合作 / 对弈**，没有陌生人、没有排行榜、没有广告。
 
@@ -332,3 +333,7 @@ node scripts/visual.mjs        # Chrome 不在默认路径时设置 CHROME_PATH
 [MIT](LICENSE) © 2026 duo-world contributors
 
 玩法灵感来自常见的双人小游戏；本项目的代码、插画、文案与卡牌内容均为重新实现。
+
+### 开源游戏署名
+
+心动乒乓改编自 [iAlias/PingPongMultiplayer](https://github.com/iAlias/PingPongMultiplayer)（MIT，Copyright © 2026 Antonio Di Stefano）。固定来源提交、改造范围和测试见 [游戏说明](docs/games/ping-pong.md)，[完整许可证](public/licenses/PingPongMultiplayer.txt) 随构建一起分发。

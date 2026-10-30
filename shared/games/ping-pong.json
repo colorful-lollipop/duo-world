@@ -1,0 +1,8 @@
+{
+  "order": 95, "name": "心动乒乓", "emoji": "🏓", "tagline": "把心动一来一回传给你",
+  "intro": "来自开源 PingPongMultiplayer 的双人乒乓，融入我们的小屋。滑动球拍，接住 TA 的每一次回球。",
+  "rules": ["双方准备后开球，你控制自己一侧的球拍", "鼠标或手指上下滑动，也可用方向键或 W / S", "球越过对方底线得 1 分，先到目标分获胜", "断线自动暂停，重连后双方准备继续"],
+  "tags": ["实时", "对战"], "duration": "3–5 分钟", "net": "建议稳定网络",
+  "gradient": ["#FEA8BD", "#AB91F0"],
+  "settings": [{"type":"select","key":"target","label":"获胜分数","default":5,"options":[{"value":5,"label":"5 分 · 轻松一局"},{"value":10,"label":"10 分 · 认真对决"}]}]
+}

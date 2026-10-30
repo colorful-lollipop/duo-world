@@ -70,6 +70,12 @@ export function useRoom(code: string, token: string | null) {
     (msg: Record<string, unknown>) => {
       const ws = wsRef.current;
       const online = ws && ws.readyState === WebSocket.OPEN && authedRef.current;
+      // 球拍位置是瞬时输入，不加入可靠动作队列，避免断线后重放旧手势。
+      if (msg.type === "action" && msg.transient === "ping-pong" &&
+          (msg.action as { type?: string } | undefined)?.type === "move") {
+        if (!online) return false;
+        try { ws.send(JSON.stringify(msg)); return true; } catch { return false; }
+      }
       if (msg.type === "action") {
         // 动作带 cid：服务端去重 + 客户端按 ack 出队；断网时先排队，连上自动补发
         const cid = `${Date.now().toString(36)}-${(++cidSeq.current).toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
