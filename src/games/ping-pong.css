@@ -1,0 +1,46 @@
+/* Native duo-world presentation; no upstream assets or runtime dependencies. */
+.pong-stage { padding: 14px 18px 12px; max-width: 900px; }
+.pong-scoreboard { position: relative; display: flex; justify-content: space-between; gap: 36px; margin: 10px 0; }
+.pong-player { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; border-radius: 16px; min-width: 0; }
+.pong-player-0 { background: #ffe3dc; color: #933b3d; }
+.pong-player-1 { background: #d9eee7; color: #245e55; }
+.pong-player > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 800; }
+.pong-player small { display: block; font-size: 11px; opacity: .8; }
+.pong-player strong { font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.pong-heart { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #c57170; }
+.pong-court { position: relative; height: clamp(150px, 43dvh, 420px); border: 3px solid #344d48; border-radius: 20px; background: #284c47; overflow: hidden; touch-action: none; cursor: crosshair; box-shadow: inset 0 0 0 8px #ffffff0d; }
+.pong-court:focus-visible { outline: 3px solid #dc9d39; outline-offset: 4px; }
+.pong-court svg { display: block; width: 100%; height: 100%; }
+.pong-net { stroke: #ffffff38; stroke-width: 4; stroke-dasharray: 12 14; }
+.pong-center { stroke: #ffffff18; fill: none; stroke-width: 3; }
+.pong-paddle { stroke: #fff9ed; stroke-width: 2; }
+.pong-paddle-0 { fill: #ffafa2; }
+.pong-paddle-1 { fill: #a5e3cb; }
+.pong-ball { fill: #fff4c2; stroke: #fffdf1; stroke-width: 2; }
+.pong-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; background: #203e3938; cursor: default; }
+.pong-overlay-card { text-align: center; padding: 18px 24px; background: #fffaf1f2; border: 2px solid var(--ink); border-radius: 20px; box-shadow: 0 5px 0 #0002; max-width: 100%; }
+.pong-overlay-card > strong { font-size: clamp(17px, 3vw, 24px); }
+.pong-overlay-card p { font-size: 13px; margin: 8px 0 12px; }
+.pong-overlay-card button { min-height: 42px; }
+.pong-footer { display: flex; justify-content: space-between; gap: 8px; padding-top: 10px; font-size: 12px; color: var(--ink-3); }
+.pong-instructions { font-size: 12px; line-height: 1.6; margin: 8px 0 0; color: var(--ink-3); }
+.pong-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--ink-3); }
+.pong-actions button { min-height: 38px; font-size: 12px; padding: 5px 10px; }
+@media (max-width: 720px) {
+  .pong-stage { padding: 10px 12px; border-radius: 22px; }
+  .pong-scoreboard { gap: 28px; margin: 8px 0; }
+  .pong-player { padding: 8px 10px; }
+  .pong-player > span { font-size: 12px; }
+  .pong-player strong { font-size: 28px; }
+  .pong-court { height: clamp(155px, 38dvh, 340px); border-radius: 15px; }
+  .pong-overlay-card { padding: 12px 14px; }
+}
+@media (max-height: 550px) {
+  .pong-stage { padding: 8px 12px; }
+  .pong-court { height: max(130px, calc(100dvh - 260px)); }
+  .pong-instructions, .pong-actions > span { display: none; }
+  .pong-scoreboard { margin: 5px 0; }
+  .pong-player { padding: 4px 10px; }
+  .pong-player strong { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .pong-stage { animation: none; } }

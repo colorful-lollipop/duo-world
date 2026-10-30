@@ -148,9 +148,18 @@ app.get("/metrics", (req, res) => {
   res.type("text/plain").send(metricsText());
 });
 
+function safeNetworkInterfaces() {
+  try {
+    return os.networkInterfaces();
+  } catch (error) {
+    log("warn", "network_interfaces_unavailable", { code: error.code });
+    return {};
+  }
+}
+
 function lanUrls() {
   const urls = [];
-  for (const [name, list] of Object.entries(os.networkInterfaces())) {
+  for (const [name, list] of Object.entries(safeNetworkInterfaces())) {
     if (/vEthernet|VMware|VirtualBox|Docker|Loopback|WSL/i.test(name)) continue;
     for (const net of list || []) {
       if (net.family === "IPv4" && !net.internal) urls.push(`http://${net.address}:${PORT}`);
@@ -550,7 +559,7 @@ log("info", "startup", { port: PORT, restoredRooms: restored, store: storeInfo()
 server.listen(PORT, HOST, () => {
   console.log("\n  二人世界 · 服务已启动");
   console.log(`  ➜  本机:   http://localhost:${PORT}`);
-  for (const [name, list] of Object.entries(os.networkInterfaces())) {
+  for (const [name, list] of Object.entries(safeNetworkInterfaces())) {
     if (/vEthernet|VMware|VirtualBox|Docker|Loopback|WSL/i.test(name)) continue;
     for (const net of list || []) {
       if (net.family === "IPv4" && !net.internal) {

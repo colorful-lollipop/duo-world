@@ -179,3 +179,39 @@ describe("rooms · 持久化与恢复", () => {
     expect(hist.stats.wins.gomoku).toEqual([0, 1]);
   });
 });
+
+describe('rooms · ping-pong connection lifecycle', () => {
+  it('pauses immediately on detach/reconnect and socket takeover, without waiting for tickRooms', () => {
+    const { room } = rooms.createRoom(P0);
+    rooms.joinRoom(room.code, P1);
+    const a = { readyState: 1, close() {} }, b = { readyState: 1, close() {} };
+    rooms.attachSocket(room, 0, a); rooms.attachSocket(room, 1, b);
+    rooms.selectGame(room, 0, 'ping-pong'); rooms.startGame(room, 0);
+    const d = room.game.data; d.phase = 'playing'; const epoch = d.epoch;
+    rooms.detachSocket(room, 1, b);
+    expect(d.phase).toBe('paused'); expect(d.epoch).toBe(epoch + 1);
+    const b2 = { readyState: 1, close() {} }; rooms.attachSocket(room, 1, b2);
+    expect(d.phase).toBe('paused');
+    d.phase = 'playing'; const next = d.epoch;
+    const b3 = { readyState: 1, close() {} }; rooms.attachSocket(room, 1, b3);
+    expect(d.phase).toBe('paused'); expect(d.epoch).toBe(next + 1);
+    rooms.detachSocket(room, 1, b2);
+    expect(room.seats[1].ws).toBe(b3);
+  });
+});
+
+it.each(['playing', 'countdown', 'paused'])('ping-pong persisted %s restores paused before any clients reconnect', phase => {
+  const { room } = rooms.createRoom(P0); rooms.joinRoom(room.code, P1);
+  const ws = () => ({ readyState: 1, close() {} });
+  rooms.attachSocket(room, 0, ws()); rooms.attachSocket(room, 1, ws());
+  rooms.selectGame(room, 0, 'ping-pong'); rooms.startGame(room, 0);
+  const d = room.game.data; d.phase = phase; d.ready = [true, false];
+  d.targets = [55, 545]; d.lastInputAt = [Date.now(), Date.now()]; d.scores = [2, 1];
+  const epoch = d.epoch; rooms.touch(room); rooms.flushPersistence(); rooms.rehydrate();
+  const restored = rooms.getRoom(room.code), saved = restored.game.data;
+  expect(saved.phase).toBe('paused'); expect(saved.epoch).toBe(epoch + 1);
+  expect(saved.ready).toEqual([false, false]); expect(saved.targets).toEqual(saved.paddles);
+  expect(saved.lastInputAt).toEqual([0, 0]); expect(saved.scores).toEqual([2, 1]);
+  rooms.attachSocket(restored, 0, ws()); rooms.attachSocket(restored, 1, ws());
+  expect(saved.phase).toBe('paused'); expect(saved.epoch).toBe(epoch + 1);
+});

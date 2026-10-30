@@ -1,0 +1,53 @@
+.hanabi-stage { display:flex; flex-direction:column; gap:14px; max-width:880px; margin-inline:auto; width:100%; min-height:0; overflow-y:auto; scrollbar-width:none; }
+.hanabi-hud { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:12px 16px; border:1px solid #e9dfed; border-radius:16px; background:#fcf8ff; font-size:13px; color:#63536e; }
+.hanabi-hud b { color:#392a4b; margin-left:4px; }
+.hanabi-turn { text-align:center; border-radius:12px; background:#f3f1f5; color:#756881; font-weight:700; padding:10px; font-size:14px; }
+.hanabi-turn.is-mine { background:#fce6eb; color:#a03f60; }
+.hanabi-turn small { display:block; margin-top:4px; color:#a13e37; }
+.hanabi-fireworks { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+.hanabi-stack { color:var(--hanabi-ink); border:1px solid color-mix(in srgb,var(--hanabi-ink) 25%,white); border-radius:16px; background:color-mix(in srgb,var(--hanabi-ink) 5%,white); text-align:center; padding:10px 4px; }
+.hanabi-stack>span { font-size:12px; font-weight:700; }
+.hanabi-stack strong { display:block; font-size:32px; line-height:1.35; }
+.hanabi-stack small { font-size:10px; }
+.hanabi-progress { display:flex; gap:3px; justify-content:center; margin-bottom:5px; }
+.hanabi-progress i { width:7px; height:7px; border-radius:50%; background:color-mix(in srgb,var(--hanabi-ink) 15%,white); }
+.hanabi-progress i.lit { background:var(--hanabi-ink); }
+.hanabi-hand-section { padding:14px; border:1px solid #ece3ea; border-radius:18px; background:#fffdfb; }
+.hanabi-section-heading { display:flex; gap:8px; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+.hanabi-section-heading h3 { margin:0; font-size:15px; overflow-wrap:anywhere; }
+.hanabi-section-heading>span { color:#82758a; font-size:11px; flex-shrink:0; }
+.hanabi-hand { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; }
+.hanabi-card { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; min-width:0; min-height:112px; border:2px solid #e7dce8; border-radius:12px; padding:16px 3px 8px; font-family:inherit; transition:border-color .15s,box-shadow .15s; }
+.hanabi-card-position { position:absolute; left:7px; top:4px; font-size:10px; opacity:.7; }
+.hanabi-card strong { font-size:36px; font-weight:800; line-height:1.2; }
+.hanabi-card>span:not(.hanabi-card-position) { font-size:12px; }
+.hanabi-card small { font-size:10px; margin-top:5px; }
+.hanabi-face { color:var(--hanabi-ink); background:color-mix(in srgb,var(--hanabi-ink) 6%,white); border-color:color-mix(in srgb,var(--hanabi-ink) 25%,white); }
+.hanabi-face.clue-match { border-color:var(--hanabi-ink); box-shadow:0 0 0 2px color-mix(in srgb,var(--hanabi-ink) 15%,transparent); }
+.hanabi-back { color:#6b4b83; background:repeating-linear-gradient(135deg,#faf4fc,#faf4fc 8px,#f7effa 8px,#f7effa 10px); cursor:pointer; }
+.hanabi-back:disabled { cursor:default; opacity:1; }
+.hanabi-back.chosen { border-color:#a34e84; box-shadow:0 0 0 2px #edcde1; }
+.hanabi-clues { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:7px; margin-top:14px; }
+.hanabi-clue-caption { font-size:11px; color:#82758a; }
+.hanabi-clue-row { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; }
+.hanabi-clue-row button { padding:8px 2px; min-height:36px; border:1px solid #e5dce9; border-radius:9px; background:white; color:var(--hanabi-ink,#665175); font-family:inherit; font-weight:700; cursor:pointer; }
+.hanabi-clue-row button small { margin-left:3px; font-weight:400; font-size:10px; }
+.hanabi-clue-row button.selected { outline:2px solid #ad628c; outline-offset:0; background:#fff3f8; }
+.hanabi-clue-row button:disabled { opacity:.38; cursor:not-allowed; }
+.hanabi-confirm,.hanabi-actions button { font-family:inherit; border:1px solid #dcb7cc; color:#8a3a62; background:#fcecf4; border-radius:10px; padding:11px 8px; font-size:12px; font-weight:700; cursor:pointer; min-height:42px; }
+.hanabi-confirm { width:100%; margin-top:10px; }
+.hanabi-confirm:disabled,.hanabi-actions button:disabled { color:#95899a; background:#f5f2f6; border-color:#e9e1eb; cursor:default; }
+.hanabi-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }
+.hanabi-note { margin:8px 0 0; color:#8a798e; line-height:1.6; font-size:11px; }
+.hanabi-details { background:#faf7fb; border-radius:12px; border:1px solid #ece3ee; padding:10px 12px; font-size:12px; color:#6f5d77; }
+.hanabi-details summary { cursor:pointer; font-weight:700; min-height:20px; }
+.hanabi-details ul,.hanabi-log { margin-bottom:0; padding-left:20px; line-height:1.8; }
+.hanabi-details li+li { margin-top:6px; }
+.hanabi-details a,.hanabi-result a { color:#885b97; display:inline-block; margin-top:9px; font-size:11px; }
+.hanabi-discards { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+.hanabi-discards span { color:var(--hanabi-ink); }
+.hanabi-result { width:100%; max-width:540px; margin-inline:auto; text-align:center; color:#735d7d; }
+.hanabi-result p { font-size:14px; line-height:1.7; }
+.hanabi-stage button:focus-visible,.hanabi-details summary:focus-visible { outline:3px solid #8859ad; outline-offset:3px; }
+@media(max-width:720px) { .hanabi-stage { gap:10px; } .hanabi-hand-section { padding:10px; } .hanabi-hand { gap:6px; } .hanabi-card { min-height:104px; } .hanabi-section-heading>span { font-size:10px; } }
+@media(max-width:400px) { .hanabi-hud { font-size:11px; padding:10px; } .hanabi-fireworks { gap:5px; } .hanabi-stack { border-radius:11px; padding:8px 2px; } .hanabi-card strong { font-size:29px; } .hanabi-card>span:not(.hanabi-card-position) { font-size:10px; } .hanabi-card small { font-size:9px; } .hanabi-clues { grid-template-columns:1fr; gap:5px; } .hanabi-clue-caption { margin-top:3px; } .hanabi-section-heading { flex-wrap:wrap; gap:3px; } }

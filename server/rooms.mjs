@@ -199,6 +199,11 @@ export function touch(room) {
 
 export function attachSocket(room, seat, ws) {
   const old = room.seats[seat].ws;
+  // 接管连接也使瞬时球拍输入失效，不能在两次 tick 之间绕过暂停。
+  if (old && old !== ws && room.game?.id === "ping-pong") {
+    room.seats[seat].ws = null;
+    games["ping-pong"].tick(room, Date.now());
+  }
   if (old && old !== ws && old.readyState === 1) {
     try {
       old.close(4002, "REPLACED");
@@ -212,6 +217,8 @@ export function attachSocket(room, seat, ws) {
 export function detachSocket(room, seat, ws) {
   if (room.seats[seat]?.ws === ws) {
     room.seats[seat].ws = null;
+    // 即刻暂停，覆盖断开与重连均发生在 100ms 主循环间隙的情况。
+    if (room.game?.id === "ping-pong") games["ping-pong"].tick(room, Date.now());
     room.seats[seat].lastSeen = Date.now();
     touch(room);
   }
@@ -439,6 +446,8 @@ export function rehydrate() {
       if (!Array.isArray(raw.journal)) raw.journal = [];
       if (!Array.isArray(raw.seenCids)) raw.seenCids = [];
       if (!raw.settings || typeof raw.settings !== "object") raw.settings = allDefaultSettings();
+      // 恢复时先使旧输入失效；两个客户端可能在首个 tick 前已经重连。
+      if (raw.game?.id === "ping-pong") games["ping-pong"].suspend(raw, now);
       rooms.set(raw.code, raw);
       restored++;
     } catch {}
