@@ -24,6 +24,7 @@
 | 🔴 爱心跳棋 | 8×8 西洋跳棋：斜走、跳吃、连跳、升王 | 想再分个胜负 |
 | 💣 一起拆弹 | 一人看炸弹、一人念手册，只能靠嘴说，限时拆完三个模块 | 想一起紧张 |
 | 🎲 爱情飞行棋 | 掷骰子跑图，踩到真心话 / 小任务，先到终点赢，输家抽撒娇卡 | 想边玩边聊 |
+| 🎆 默契花火 | 看伙伴的牌，用有限的提示合作点亮五色烟花，经典双人 Hanabi 中文版 | 想认真合作、培养默契 |
 | 🏓 心动乒乓 | 实时双人挥拍，5 / 10 分制，断线暂停重连继续 | 想来一场轻松对决 |
 
 所有玩法都是 **两人合作 / 对弈**，没有陌生人、没有排行榜、没有广告。
@@ -337,3 +338,5 @@ node scripts/visual.mjs        # Chrome 不在默认路径时设置 CHROME_PATH
 ### 开源游戏署名
 
 心动乒乓改编自 [iAlias/PingPongMultiplayer](https://github.com/iAlias/PingPongMultiplayer)（MIT，Copyright © 2026 Antonio Di Stefano）。固定来源提交、改造范围和测试见 [游戏说明](docs/games/ping-pong.md)，[完整许可证](public/licenses/PingPongMultiplayer.txt) 随构建一起分发。
+
+默契花火参考 [bstnfrmry/hanabi（Hanab.cards）](https://github.com/bstnfrmry/hanabi)（MIT，Copyright © 2020 Bastien Formery）重写为小屋原生双人中文游戏，不使用 Firebase 或上游账号系统。固定来源、规则差异和测试见 [游戏说明](docs/games/hanabi.md)，[完整许可证](public/licenses/Hanabi.txt) 随构建分发。
